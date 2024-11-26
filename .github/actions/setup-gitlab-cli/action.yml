@@ -1,0 +1,15 @@
+name: "Setup GitLab CLI"
+description: "Installs and configures GitLab CLI"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install GitLab CLI
+      shell: bash
+      run: |
+        curl -sSL "https://raw.githubusercontent.com/upciti/wakemeops/main/assets/install_repository" | sudo bash
+        sudo apt install glab
+        if ! glab --version; then
+          echo "Installation failed"
+          exit 1
+        fi

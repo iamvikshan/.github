@@ -1,0 +1,109 @@
+name: "Sync Repository"
+description: "Syncs repository content and pull requests with GitLab"
+
+inputs:
+  gitlab-token:
+    description: "GitLab API token"
+    required: true
+  github-token:
+    description: "GitHub API token"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Sync Branches
+      shell: bash
+      env:
+        GITLAB_TOKEN: ${{ inputs.gitlab-token }}
+      run: |
+        git remote add gitlab "https://oauth2:${GITLAB_TOKEN}@gitlab.com/${GITLAB_PROJECT_PATH}.git"
+
+        git fetch origin --no-tags || exit 1
+        git fetch gitlab --no-tags || exit 1
+
+        GITHUB_BRANCHES=$(git branch -r | grep 'origin/' | sed 's#origin/##' | grep -v 'HEAD' | tr -d ' ' | sort)
+        GITLAB_BRANCHES=$(git branch -r | grep 'gitlab/' | sed 's#gitlab/##' | tr -d ' ' | sort)
+
+        git config --global user.name "${{ env.GITLAB_USERNAME }}"
+        git config --global user.email "${{ env.GITHUB_USERNAME }}@users.noreply.github.com"
+
+        echo "$GITHUB_BRANCHES" | while read branch; do
+          if [ -n "$branch" ]; then
+            echo "Syncing branch: $branch"
+            git checkout -B "${branch}" "origin/${branch}"
+            git push -f gitlab "${branch}:${branch}" -o ci.skip || exit 1
+          fi
+        done
+
+        DEFAULT_BRANCH=$(git remote show origin | grep 'HEAD branch' | cut -d' ' -f5)
+
+        echo "$GITLAB_BRANCHES" | while read gitlab_branch; do
+          if [ -n "$gitlab_branch" ] && [ "$gitlab_branch" != "$DEFAULT_BRANCH" ]; then
+            if ! echo "$GITHUB_BRANCHES" | grep -Fx "$gitlab_branch" > /dev/null; then
+              if ! git show-ref --verify --quiet "refs/remotes/origin/$gitlab_branch"; then
+                git push gitlab --delete "${gitlab_branch}" || true
+              fi
+            fi
+          fi
+        done
+
+    - name: Configure GitLab Auth
+      shell: bash
+      env:
+        GITLAB_TOKEN: ${{ inputs.gitlab-token }}
+      run: glab auth login --token "$GITLAB_TOKEN"
+
+    - name: Sync Pull Requests
+      if: github.event_name == 'push' || github.event_name == 'pull_request'
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+        GITLAB_TOKEN: ${{ inputs.gitlab-token }}
+      run: |
+        PROJECT_ID=$(curl -s -H "PRIVATE-TOKEN: $GITLAB_TOKEN" \
+          "https://gitlab.com/api/v4/projects/${{ env.GITLAB_USERNAME }}%2F${REPO_NAME}" | jq -r '.id')
+
+        TEMP_BRANCH="temp-sync-$(date +%s)"
+        git checkout -b "$TEMP_BRANCH"
+
+        get_gitlab_mr_iid() {
+          curl -s -H "PRIVATE-TOKEN: $GITLAB_TOKEN" \
+            "https://gitlab.com/api/v4/projects/${PROJECT_ID}/merge_requests?search=${1}" | \
+            jq -r '.[0].iid // empty'
+        }
+
+        GITHUB_PRS=$(gh pr list --state all --json number,title,body,headRefName,baseRefName,headRepositoryOwner,state,mergedAt)
+
+        echo "$GITHUB_PRS" | jq -c '.[]' | while read -r pr; do
+          PR_TITLE=$(echo "$pr" | jq -r '.title')
+          PR_DESC=$(echo "$pr" | jq -r '.body')
+          SOURCE_BRANCH=$(echo "$pr" | jq -r '.headRefName')
+          TARGET_BRANCH=$(echo "$pr" | jq -r '.baseRefName')
+          PR_STATE=$(echo "$pr" | jq -r '.state')
+          PR_MERGED_AT=$(echo "$pr" | jq -r '.mergedAt')
+          
+          MR_IID=$(get_gitlab_mr_iid "$PR_TITLE")
+          
+          if [ -n "$MR_IID" ]; then
+            if [ "$PR_STATE" = "CLOSED" ]; then
+              if [ -n "$PR_MERGED_AT" ]; then
+                glab mr merge "$MR_IID" --when-pipeline-succeeds || true
+              else
+                curl -X PUT -H "PRIVATE-TOKEN: $GITLAB_TOKEN" \
+                  "https://gitlab.com/api/v4/projects/${PROJECT_ID}/merge_requests/${MR_IID}" \
+                  -d "state_event=close"
+              fi
+            fi
+          elif [ "$PR_STATE" = "OPEN" ]; then
+            glab mr create \
+              --source-branch "${SOURCE_BRANCH}" \
+              --target-branch "${TARGET_BRANCH}" \
+              --title "${PR_TITLE}" \
+              --description "${PR_DESC}" \
+              --remove-source-branch || true
+          fi
+        done
+
+        git checkout -
+        git branch -D "$TEMP_BRANCH"

@@ -14,7 +14,8 @@ Thank you for creating them!
 
 ## Pull Requests
 
-Pull requests are a great way to get your ideas into this repository. When deciding whether to merge a pull request, the following factors are considered:
+Pull requests are a great way to get your ideas into this repository. When deciding whether to merge
+a pull request, the following factors are considered:
 
 ### Does it state intent
 
@@ -28,7 +29,8 @@ Doesn't tell me anything about why you're doing that
 
 > Add link to code of conduct in README.md because users don't always look in the CONTRIBUTING.md
 
-Tells me the problem that you have found, and the pull request shows me the action you have taken to solve it.
+Tells me the problem that you have found, and the pull request shows me the action you have taken to
+solve it.
 
 ### Is it of good quality
 
@@ -38,8 +40,9 @@ Tells me the problem that you have found, and the pull request shows me the acti
 
 ### Does it follow the Code of Conduct
 
-Make sure that you follow the Code of Conduct, available at https://github.com/vixshan/vixshan/.github.
+Make sure that you follow the Code of Conduct, available at https://github.com/vixshan/.github.
 
 ## Credits
 
-These Contributing Guidelines are adapted from [`Good-CONTRIBUTING.md-template.md`](https://gist.github.com/PurpleBooth/b24679402957c63ec426)
+These Contributing Guidelines are adapted from
+[`Good-CONTRIBUTING.md-template.md`](https://gist.github.com/PurpleBooth/b24679402957c63ec426)
