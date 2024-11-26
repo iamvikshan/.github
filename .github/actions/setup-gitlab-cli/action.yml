@@ -1,6 +1,9 @@
 name: "Setup GitLab CLI"
-description: "Installs and configures GitLab CLI"
-
+description: "Installs and configures GitLab CLI (glab)"
+inputs:
+  gitlab-token:
+    description: "GitLab API token"
+    required: true
 runs:
   using: "composite"
   steps:
@@ -13,3 +16,7 @@ runs:
           echo "Installation failed"
           exit 1
         fi
+
+    - name: Configure GitLab Auth
+      shell: bash
+      run: glab auth login --token "${{ inputs.gitlab-token }}"
