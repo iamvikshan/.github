@@ -1,33 +1,38 @@
 name: "Manage GitLab Repository"
-description: "Creates and configures GitLab repository"
-
+description: "Creates and configures GitLab repository if it does not exist"
 inputs:
   gitlab-token:
     description: "GitLab API token"
     required: true
-
+  gitlab-username:
+    description: "GitLab username"
+    required: true
+  repo-name:
+    description: "Repository name"
+    required: true
+  default-branch:
+    description: "Default branch name"
+    required: true
 runs:
   using: "composite"
   steps:
-    - name: Check and Create GitLab Repository
+    - name: Check and Create Repository
       shell: bash
-      env:
-        GITLAB_TOKEN: ${{ inputs.gitlab-token }}
       run: |
         # Check if repository exists
-        REPO_EXISTS=$(curl -s -H "PRIVATE-TOKEN: $GITLAB_TOKEN" \
-          "https://gitlab.com/api/v4/projects/${{ env.GITLAB_USERNAME }}%2F${REPO_NAME}" | jq -r '.id // empty')
+        REPO_EXISTS=$(curl -s -H "PRIVATE-TOKEN: ${{ inputs.gitlab-token }}" \
+          "https://gitlab.com/api/v4/projects/${{ inputs.gitlab-username }}%2F${{ inputs.repo-name }}" | jq -r '.id // empty')
 
         if [ -z "$REPO_EXISTS" ]; then
           echo "Repository doesn't exist. Creating..."
           
           # Create repository
-          curl -X POST -H "PRIVATE-TOKEN: $GITLAB_TOKEN" \
+          curl -X POST -H "PRIVATE-TOKEN: ${{ inputs.gitlab-token }}" \
             "https://gitlab.com/api/v4/projects" \
-            -d "name=${REPO_NAME}" \
-            -d "path=${REPO_NAME}" \
-            -d "namespace_id=$(curl -s -H "PRIVATE-TOKEN: $GITLAB_TOKEN" \
-              "https://gitlab.com/api/v4/namespaces?search=${REPO_NAME}" | jq '.[0].id')" \
+            -d "name=${{ inputs.repo-name }}" \
+            -d "path=${{ inputs.repo-name }}" \
+            -d "namespace_id=$(curl -s -H "PRIVATE-TOKEN: ${{ inputs.gitlab-token }}" \
+              "https://gitlab.com/api/v4/namespaces?search=${{ inputs.gitlab-username }}" | jq '.[0].id')" \
             -d "visibility=public"
           
           echo "Repository created successfully"
@@ -38,14 +43,10 @@ runs:
 
     - name: Update Default Branch
       shell: bash
-      env:
-        GITLAB_TOKEN: ${{ inputs.gitlab-token }}
       run: |
-        DEFAULT_BRANCH=$(git remote show origin | grep 'HEAD branch' | cut -d' ' -f5)
+        PROJECT_ID=$(curl -s -H "PRIVATE-TOKEN: ${{ inputs.gitlab-token }}" \
+          "https://gitlab.com/api/v4/projects/${{ inputs.gitlab-username }}%2F${{ inputs.repo-name }}" | jq -r '.id')
 
-        PROJECT_ID=$(curl -s -H "PRIVATE-TOKEN: $GITLAB_TOKEN" \
-          "https://gitlab.com/api/v4/projects/${{ env.GITLAB_USERNAME }}%2F${REPO_NAME}" | jq -r '.id')
-
-        curl -X PUT -H "PRIVATE-TOKEN: $GITLAB_TOKEN" \
+        curl -X PUT -H "PRIVATE-TOKEN: ${{ inputs.gitlab-token }}" \
           "https://gitlab.com/api/v4/projects/${PROJECT_ID}" \
-          -d "default_branch=${DEFAULT_BRANCH}"
+          -d "default_branch=${{ inputs.default-branch }}"
