@@ -1,3 +1,10 @@
+<div align="center">
+
+[![wakatime](https://wakatime.com/badge/github/iamvikshan/.github.svg)](https://wakatime.com/badge/github/iamvikshan/.github)
+[![CLA Assistant](https://github.com/iamvikshan/.github/actions/workflows/cla.yml/badge.svg)](https://github.com/iamvikshan/.github/actions/workflows/cla.yml)
+
+</div>
+
 # 🏥 Vikshan's `.github`
 
 This repository contains the common community health files that i (vikshan), use for my projects.
