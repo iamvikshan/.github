@@ -18,4 +18,4 @@ These policies are adopted across my repos:
 
 Other files included in this repository are:
 
-- [signatures.json](./signatures/cla.json) contains the list of users who have signed my CLA
+- [signatures.json](./signatures/signatures.json) contains the list of users who have signed my CLA
