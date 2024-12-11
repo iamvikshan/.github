@@ -3,10 +3,14 @@ description: "Setup Node.js, Bun, and install dependencies"
 runs:
   using: "composite"
   steps:
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
+    - uses: actions/checkout@v4
       with:
-        node-version: latest
+        fetch-depth: 0
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20.8.1'
 
     - name: Setup Bun
       uses: oven-sh/setup-bun@v2
@@ -14,5 +18,5 @@ runs:
         bun-version: latest
 
     - name: Install dependencies
-      shell: bash
       run: bun i
+      shell: bash
