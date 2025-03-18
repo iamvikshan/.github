@@ -37,7 +37,8 @@ body:
       label: Expected behavior
       description: A clear and concise description of what you expected to happen.
     validations:
-      required: true
+      required: false
+
   - type: textarea
     id: version
     attributes:
@@ -60,16 +61,18 @@ body:
       required: false
 
   - type: checkboxes
-    id: terms
+    id: code-of-conduct
     attributes:
-      label: Code of Conduct
+      label: Code of Conduct Agreement
       description: By submitting this issue, you agree to follow our [Code of Conduct](../.github/CODE_OF_CONDUCT.md)
       options:
         - label: I agree to follow this project's Code of Conduct
+          required: true
+
   - type: checkboxes
-    id: terms
+    id: community-code-of-conduct
     attributes:
-      label: Code of Conduct
+      label: Community Code of Conduct Agreement
       description: By submitting this request, you agree to follow our [Code of Conduct](../.github/CODE_OF_CONDUCT.md)
       options:
         - label: I agree to follow the Open Sauced Community Code of Conduct
