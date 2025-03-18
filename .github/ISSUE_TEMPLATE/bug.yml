@@ -1,5 +1,5 @@
 name: Bug Report
-description: Create a report to help us improve
+description: "Oops! I found a bug in the system!"
 title: "[Bug]: "
 assignees:
   - iamvikshan
@@ -7,63 +7,63 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for taking the time to fill out this bug report!
+        Hey there, thanks for taking the time to report this issue.
 
   - type: textarea
     id: bug-description
     attributes:
-      label: Describe the bug
-      description: A clear and concise description of what the bug is.
-      placeholder: Tell us what happened, and what you expected to happen...
+      label: What's the bug?
+      description: "Tell us about the this bug you've uncovered."
+      placeholder: "What happened? What were you expecting instead? Are you okay btw?"
     validations:
       required: true
 
   - type: textarea
     id: reproduction-steps
     attributes:
-      label: Steps to reproduce
-      description: Steps to reproduce the behavior
+      label: How to catch the bug.
+      description: "Help us replicate the issue so we can track it down. Hopefully you are not scared of insects!"
       placeholder: |
         1. Go to '...'
         2. Click on '....'
         3. Scroll down to '....'
-        4. See error
+        4. Watch the chaos unfold!
     validations:
       required: true
 
   - type: dropdown
     id: priority
     attributes:
-      label: Priority
-      description: How important is this issue to you?
+      label: How urgent is this?
+      description: "How important is this issue?"
       options:
-        - Critical (Blocking my work)
+        - Critical (Blocking my work — SOS!)
         - High (Would significantly improve my workflow)
-        - Medium (Would be nice to have)
-        - Low (Just an idea)
+        - Medium (Would be nice to fix someday)
+        - Low (Just an idea or minor annoyance)
     validations:
       required: true
 
   - type: checkboxes
     id: requirements
     attributes:
-      label: Requirements
-      description: Please confirm the following
+      label: Double-checklist
+      description: "Before we dive in, let's make sure everything's in order."
       options:
-        - label: I am using the latest version of the software
+        - label: I'm using the latest version of the software
           required: true
-        - label: I have searched for existing bugs that match this one
+        - label: I've searched for similar bugs and didn't find a match
           required: true
-        - label: I am willing to provide additional information if needed
+        - label: I'm ready to share more info if needed (we might need your help!)
           required: true
 
   - type: checkboxes
     id: code-of-conduct
     attributes:
-      label: Code of Conduct Agreement
-      description:
+      label: Play nice pledge
+      description: |
         By submitting this issue, you agree to follow our [Code of Conduct](../.github/CODE_OF_CONDUCT.md) and
-        [CLA](../.github/CLA.md)
+        [CLA](../.github/CLA.md). Let's keep things friendly and collaborative!
       options:
         - label: I agree to follow this project's Code of Conduct
           required: true
