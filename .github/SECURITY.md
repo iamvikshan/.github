@@ -10,8 +10,7 @@ goals, please note the following before using this software:
 
 - Review the software license to understand our obligations in terms of warranties and suitability
   for purpose
-- For any questions or concerns about security, you can reach out directly to us at
-  foss@vikshan.tech
+- For any questions or concerns about security, you can reach out directly to us at foss@vikshan.me
 - We request that you work with our security team and opt for responsible disclosure using the
   guidelines below
 - At this moment, there is no Bug Bounty Program for this open-source repository
@@ -28,7 +27,7 @@ If you find a security bug in this repository, please work us following responsi
 principles and these guidelines:
 
 - Do not submit a normal issue or pull request in our public repository, instead report through our
-  Bug Bounty or directly to foss@vikshan.tech (If you would like to encrypt, please see the end of
+  Bug Bounty or directly to foss@vikshan.me (If you would like to encrypt, please see the end of
   these guidelines)
 - We will review your submission and may follow up for additional details
 - If you have a patch, we will review it and approve it privately; once approved for release you can
@@ -41,7 +40,7 @@ principles and these guidelines:
 
 ## Contact
 
-If you have any questions, please reach out directly to us at foss@vikshan.tech.
+If you have any questions, please reach out directly to us at foss@vikshan.me.
 
 ## Credits
 

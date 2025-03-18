@@ -40,7 +40,7 @@ solve it.
 
 ### Does it follow the Code of Conduct
 
-Make sure that you follow the Code of Conduct, available at https://github.com/vixshan/.github.
+Make sure that you follow the Code of Conduct, available [here](./CODE_OF_CONDUCT.md).
 
 ## Credits
 

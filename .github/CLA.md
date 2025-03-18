@@ -8,7 +8,7 @@ out the terms governing any source code, object code, bug fixes, configuration c
 specifications, documentation, data, materials, feedback, information or other works of authorship
 that you submit or have submitted, in any form and in any manner, to Vikshan in respect of any of
 the Projects (collectively "Contributions"). If you have any questions respecting this Agreement,
-please contact [foss@vikshan.tech](mail.to:foss@vikshan.tech).
+please contact [foss@vikshan.me](mail.to:foss@vikshan.me).
 
 You agree that the following terms apply to all of your past, present and future Contributions.
 Except for the licenses granted in this Agreement, you retain all of your right, title and interest

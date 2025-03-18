@@ -1,25 +1,25 @@
-name: 'Create GitLab Release'
-description: 'Creates a release and tag in GitLab mirroring the GitHub release'
+name: "Create GitLab Release"
+description: "Creates a release and tag in GitLab mirroring the GitHub release"
 
 inputs:
   gitlab-token:
-    description: 'GitLab API token'
+    description: "GitLab API token"
     required: true
   gitlab-project-path:
-    description: 'GitLab project path (username/repo)'
+    description: "GitLab project path (username/repo)"
     required: true
   version:
-    description: 'Release version'
+    description: "Release version"
     required: true
   github-token:
-    description: 'GitHub token to fetch release notes'
+    description: "GitHub token to fetch release notes"
     required: true
   github-repo:
-    description: 'GitHub repository name'
+    description: "GitHub repository name"
     required: true
 
 runs:
-  using: 'composite'
+  using: "composite"
   steps:
     - name: Create GitLab Release and Tag
       shell: bash

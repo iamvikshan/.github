@@ -2,7 +2,7 @@ name: Bug Report
 description: Create a report to help us improve
 title: "[Bug]: "
 assignees:
-  - vixshan
+  - iamvikshan
 body:
   - type: markdown
     attributes:
@@ -14,7 +14,7 @@ body:
     attributes:
       label: Describe the bug
       description: A clear and concise description of what the bug is.
-      placeholder: Tell us what happened...
+      placeholder: Tell us what happened, and what you expected to happen...
     validations:
       required: true
 
@@ -31,49 +31,39 @@ body:
     validations:
       required: true
 
-  - type: textarea
-    id: expected-behavior
+  - type: dropdown
+    id: priority
     attributes:
-      label: Expected behavior
-      description: A clear and concise description of what you expected to happen.
-    validations:
-      required: false
-
-  - type: textarea
-    id: version
-    attributes:
-      label: Version
-      description: What version of our software are you running? (Type N/A if, well, not applicable)
-      placeholder: v1.6.9
-      value: "This is the version I am running!"
+      label: Priority
+      description: How important is this issue to you?
+      options:
+        - Critical (Blocking my work)
+        - High (Would significantly improve my workflow)
+        - Medium (Would be nice to have)
+        - Low (Just an idea)
     validations:
       required: true
 
-  - type: textarea
-    id: additional_context
+  - type: checkboxes
+    id: requirements
     attributes:
-      label: Anything else?
-      description: |
-        Links? References? Anything that will give us more context about the issue you are encountering!
-
-        Tip: You can attach screenshots or log files by clicking this area to highlight it and then dragging files in.
-    validations:
-      required: false
+      label: Requirements
+      description: Please confirm the following
+      options:
+        - label: I am using the latest version of the software
+          required: true
+        - label: I have searched for existing bugs that match this one
+          required: true
+        - label: I am willing to provide additional information if needed
+          required: true
 
   - type: checkboxes
     id: code-of-conduct
     attributes:
       label: Code of Conduct Agreement
-      description: By submitting this issue, you agree to follow our [Code of Conduct](../.github/CODE_OF_CONDUCT.md)
+      description:
+        By submitting this issue, you agree to follow our [Code of Conduct](../.github/CODE_OF_CONDUCT.md) and
+        [CLA](../.github/CLA.md)
       options:
         - label: I agree to follow this project's Code of Conduct
-          required: true
-
-  - type: checkboxes
-    id: community-code-of-conduct
-    attributes:
-      label: Community Code of Conduct Agreement
-      description: By submitting this request, you agree to follow our [Code of Conduct](../.github/CODE_OF_CONDUCT.md)
-      options:
-        - label: I agree to follow the Open Sauced Community Code of Conduct
           required: true
