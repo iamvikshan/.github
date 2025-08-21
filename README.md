@@ -1,6 +1,6 @@
 <div align="center">
 
-[![wakatime](https://wakatime.com/badge/github/iamvikshan/.github.svg)](https://wakatime.com/badge/github/iamvikshan/.github)
+[![wakatime](https://wakatime.com/badge/user/8535571c-1079-48d4-ac47-11a817f61249/project/7a0a8898-8a77-4841-aa00-56218eb74bb4.svg)](https://wakatime.com/badge/user/8535571c-1079-48d4-ac47-11a817f61249/project/7a0a8898-8a77-4841-aa00-56218eb74bb4)
 [![CLA Assistant](https://github.com/iamvikshan/.github/actions/workflows/cla.yml/badge.svg)](https://github.com/iamvikshan/.github/actions/workflows/cla.yml)
 
 </div>

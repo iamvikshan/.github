@@ -5,20 +5,14 @@
 
 version: 2
 updates:
-  # Enable version updates for NPM
-  - package-ecosystem: "npm"
+  # Enable version updates for Bun
+  - package-ecosystem: "bun"
     directory: "/"
     schedule:
       interval: "daily"
     open-pull-requests-limit: 5
-    reviewers:
-      - "iamvikshan"
     labels:
       - "dependencies"
-    # ignore:
-    #   - dependency-name: "discord.js"
-    #   - dependency-name: 'pretty-ms'
-    #   - dependency-name: 'node-fetch'
 
   # Maintain dependencies for GitHub Actions
   - package-ecosystem: "github-actions"
@@ -26,7 +20,6 @@ updates:
     schedule:
       interval: "daily"
     open-pull-requests-limit: 5
-    reviewers:
-      - "iamvikshan"
+
     labels:
-      - "actions"
+      - "gh-actions"
