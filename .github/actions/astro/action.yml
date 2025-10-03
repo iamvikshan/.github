@@ -18,7 +18,6 @@ runs:
   steps:
     - name: Checkout repository
       uses: actions/checkout@v5.0.0
-      shell: bash
 
     - name: Install, build, and upload site
       uses: withastro/action@v4.2.0
@@ -26,9 +25,7 @@ runs:
         path: ${{ inputs.path }}
         node-version: ${{ inputs.node-version }}
         package-manager: ${{ inputs.package-manager }}
-      shell: bash
 
     - name: Deploy to GitHub Pages
       id: deployment
       uses: actions/deploy-pages@v4.0.5
-      shell: bash
