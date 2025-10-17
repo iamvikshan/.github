@@ -9,4 +9,4 @@ runs:
         node-version: "latest"
 
     - name: Setup Bun and install dependencies
-      uses: ./.github/actions/setup-bun@main
+      uses: iamvikshan/.github/.github/actions/setup-bun@main
