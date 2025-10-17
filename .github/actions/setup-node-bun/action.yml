@@ -4,9 +4,9 @@ runs:
   using: "composite"
   steps:
     - name: Setup Node.js
-      uses: actions/setup-node@v4.4.0
+      uses: actions/setup-node@v6.0.0
       with:
         node-version: "latest"
 
     - name: Setup Bun and install dependencies
-      uses: ./.github/actions/setup-bun
+      uses: ./.github/actions/setup-bun@main
