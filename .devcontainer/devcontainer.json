@@ -1,16 +1,26 @@
 {
-  "name": "Ubuntu + Bun",
-  "image": "ghcr.io/iamvikshan/devcontainers/ubuntu-bun:latest",
+  "name": "Ubuntu",
+  "image": "vikshan/ubuntu-tools:latest",
 
+  "features": {
+    "ghcr.io/devcontainers/features/github-cli:1": {
+      "installDirectlyFromGitHubRelease": true,
+      "version": "latest"
+    },
+    "ghcr.io/devcontainers/features/sshd:1": {
+      "version": "latest"
+    }
+  },
+  
   // Configure tool-specific properties.
   "customizations": {
     "vscode": {
-      "extensions": ["dbaeumer.vscode-eslint", "GitHub.copilot", "esbenp.prettier-vscode", "eamodio.gitlens", "oven.bun-vscode"]
+      "extensions": ["dbaeumer.vscode-eslint", "GitHub.copilot", "esbenp.prettier-vscode", "eamodio.gitlens"]
     }
   },
 
   // Use 'postCreateCommand' to run commands after the container is created.
-  "postCreateCommand": "bun install",
+  "postCreateCommand": "sudo apt update && sudo apt upgrade -y && [ -f scripts/git.sh ] && chmod +x scripts/git.sh; sudo ln -sf /usr/share/zoneinfo/Africa/Nairobi /etc/localtime && curl -fsSL https://cli.coderabbit.ai/install.sh | sh",
 
   // Set `remoteUser` to `root` to connect as root.
   "remoteUser": "root"

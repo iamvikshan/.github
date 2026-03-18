@@ -5,6 +5,14 @@ inputs:
     description: "The directory to install dependencies in"
     required: false
     default: "."
+  install-paths:
+    description: "Newline-separated paths to install dependencies in, relative to the workspace root"
+    required: false
+    default: ""
+  install-args:
+    description: "Newline-separated Bun install arguments"
+    required: false
+    default: "--production"
 runs:
   using: "composite"
   steps:
@@ -15,6 +23,62 @@ runs:
 
     - name: Install dependencies
       shell: bash
+      env:
+        ACTION_WORKING_DIRECTORY: ${{ inputs.working-directory }}
+        ACTION_INSTALL_PATHS: ${{ inputs.install-paths }}
+        ACTION_INSTALL_ARGS: ${{ inputs.install-args }}
       run: |
-        cd ${{ inputs.working-directory }}
-        bun install --production
+        set -euo pipefail
+
+        workspace_root="$(realpath -m "$GITHUB_WORKSPACE")"
+        install_paths=()
+        install_args=()
+        using_working_directory_fallback=false
+
+        while IFS= read -r raw_path; do
+          trimmed_path="${raw_path#"${raw_path%%[![:space:]]*}"}"
+          trimmed_path="${trimmed_path%"${trimmed_path##*[![:space:]]}"}"
+
+          if [[ -z "$trimmed_path" ]]; then
+            continue
+          fi
+
+          install_paths+=("$trimmed_path")
+        done <<< "$ACTION_INSTALL_PATHS"
+
+        if [[ "${#install_paths[@]}" -eq 0 ]]; then
+          install_paths=("$ACTION_WORKING_DIRECTORY")
+          using_working_directory_fallback=true
+        fi
+
+        while IFS= read -r raw_arg; do
+          trimmed_arg="${raw_arg#"${raw_arg%%[![:space:]]*}"}"
+          trimmed_arg="${trimmed_arg%"${trimmed_arg##*[![:space:]]}"}"
+
+          if [[ -z "$trimmed_arg" ]]; then
+            continue
+          fi
+
+          install_args+=("$trimmed_arg")
+        done <<< "$ACTION_INSTALL_ARGS"
+
+        for install_path in "${install_paths[@]}"; do
+          if [[ "$using_working_directory_fallback" == "true" && "$install_path" = /* ]]; then
+            resolved_path="$(realpath -m "$install_path")"
+          else
+            resolved_path="$(realpath -m "$workspace_root/$install_path")"
+          fi
+
+          case "$resolved_path" in
+            "$workspace_root"|"$workspace_root"/*) ;;
+            *)
+              echo "Install path escapes workspace: $install_path" >&2
+              exit 1
+              ;;
+          esac
+
+          (
+            cd "$resolved_path"
+            bun install "${install_args[@]}"
+          )
+        done

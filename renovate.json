@@ -2,5 +2,36 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "config:recommended"
-  ]
+  ],
+  "enabledManagers": [
+    "bun",
+    "github-actions"
+  ],
+  "pinDigests": false,
+  "configMigration": true,
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": [
+      "before 5am on Monday"
+    ]
+  },
+  "labels": [
+    "dependencies"
+  ],
+  "packageRules": [
+    {
+      "matchManagers": [
+        "bun",
+        "github-actions"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
+      "matchCurrentVersion": "!/^0\\./",
+      "automerge": true
+    }
+  ],
+  "platformAutomerge": false,
+  "automergeType": "pr"
 }

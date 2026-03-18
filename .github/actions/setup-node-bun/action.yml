@@ -1,5 +1,14 @@
 name: "Setup node-bun Environment"
 description: "Setup Node.js, Bun, and install dependencies"
+inputs:
+  install-paths:
+    description: "Newline-separated paths to install dependencies in, relative to the workspace root"
+    required: false
+    default: ""
+  install-args:
+    description: "Newline-separated Bun install arguments"
+    required: false
+    default: ""
 runs:
   using: "composite"
   steps:
@@ -10,3 +19,6 @@ runs:
 
     - name: Setup Bun and install dependencies
       uses: iamvikshan/.github/.github/actions/setup-bun@main
+      with:
+        install-paths: ${{ inputs.install-paths }}
+        install-args: ${{ inputs.install-args }}

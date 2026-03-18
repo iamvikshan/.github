@@ -7,13 +7,13 @@ body:
   - type: markdown
     attributes:
       value: |
-        Hey there, thanks for taking the time to report this issue.
+        Hey there, thanks for taking the time to report this bug.
 
   - type: textarea
     id: bug-description
     attributes:
       label: What's the bug?
-      description: "Tell us about the this bug you've uncovered."
+      description: "Tell us about the bug you've uncovered."
       placeholder: "What happened? What were you expecting instead? Are you okay btw?"
     validations:
       required: true
@@ -22,7 +22,7 @@ body:
     id: reproduction-steps
     attributes:
       label: How to catch the bug.
-      description: "Help us replicate the issue so we can track it down. Hopefully you are not scared of insects!"
+      description: "Help us replicate the bug so we can track it down. Hopefully you are not scared of insects!"
       placeholder: |
         1. Go to '...'
         2. Click on '....'

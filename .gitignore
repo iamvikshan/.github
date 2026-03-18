@@ -2,3 +2,5 @@ bun.lockb
 package-lock.json
 node_modules
 bun.lock
+.atlas
+hooks/
