@@ -67,15 +67,14 @@ runs:
             resolved_path="$(realpath -m "$install_path")"
           else
             resolved_path="$(realpath -m "$workspace_root/$install_path")"
+            case "$resolved_path" in
+              "$workspace_root"|"$workspace_root"/*) ;;
+              *)
+                echo "Install path escapes workspace: $install_path" >&2
+                exit 1
+                ;;
+            esac
           fi
-
-          case "$resolved_path" in
-            "$workspace_root"|"$workspace_root"/*) ;;
-            *)
-              echo "Install path escapes workspace: $install_path" >&2
-              exit 1
-              ;;
-          esac
 
           (
             cd "$resolved_path"
