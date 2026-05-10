@@ -1,15 +1,7 @@
+# Dependencies
 node_modules/
-*ignore*
-*.sh
-*.bat
-*.nix
-*.replit
-*.example
-*.jpeg
-*.env
-*.lock*
-*.webp
-*.svg
-*.png
-*.imgb*
-*.ttf
+
+# VCS and editor state
+.git/
+
+.*ignore

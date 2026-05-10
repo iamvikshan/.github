@@ -12,27 +12,29 @@
   "semi": false,
   "singleQuote": true,
   "tabWidth": 2,
-  "trailingComma": "none",
+  "trailingComma": "es5",
   "useTabs": false,
   "overrides": [
     {
-      "files": ["*.yml", "*.yaml", "*.json"],
-      "options": {
-        "singleQuote": false,
-        "printWidth": 130
-      }
-    },
-    {
       "files": ["*.md"],
       "options": {
-        "proseWrap": "always",
-        "printWidth": 100
+        "proseWrap": "preserve",
+        "printWidth": 80
       }
     },
     {
-      "files": ["Dockerfile", "*.sh"],
+      "files": ["*.json", "*.jsonc"],
       "options": {
-        "tabWidth": 4
+        "trailingComma": "none",
+        "singleQuote": false
+      }
+    },
+    {
+      "files": ["*.yml", "*.yaml"],
+      "options": {
+        "tabWidth": 2,
+        "singleQuote": false,
+        "proseWrap": "preserve"
       }
     }
   ]

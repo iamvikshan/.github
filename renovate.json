@@ -1,37 +1,52 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": [
-    "config:recommended"
-  ],
-  "enabledManagers": [
-    "bun",
-    "github-actions"
-  ],
+  "extends": ["config:recommended", ":semanticCommits"],
+  "semanticCommitType": "chore",
+  "baseBranchPatterns": ["main"],
+  "automerge": false,
+  "prConcurrentLimit": 10,
+  "prHourlyLimit": 5,
+  "labels": ["dependencies"],
+  "assignees": ["iamvikshan"],
+  "schedule": ["before 4am every weekday"],
+  "timezone": "Africa/Nairobi",
+  "dependencyDashboard": true,
+  "dependencyDashboardApproval": false,
+  "rebaseWhen": "conflicted",
+  "rangeStrategy": "bump",
+  "separateMinorPatch": true,
+  "separateMajorMinor": true,
   "pinDigests": false,
-  "configMigration": true,
-  "lockFileMaintenance": {
-    "enabled": true,
-    "schedule": [
-      "before 5am on Monday"
-    ]
-  },
-  "labels": [
-    "dependencies"
-  ],
   "packageRules": [
     {
-      "matchManagers": [
-        "bun",
-        "github-actions"
-      ],
-      "matchUpdateTypes": [
-        "minor",
-        "patch"
-      ],
-      "matchCurrentVersion": "!/^0\\./",
-      "automerge": true
+      "description": "Automerge patch updates (safe bug fixes)",
+      "matchUpdateTypes": ["patch"],
+      "automerge": true,
+      "minimumReleaseAge": "1 day"
+    },
+    {
+      "description": "Require approval for major updates",
+      "matchUpdateTypes": ["major"],
+      "automerge": false,
+      "minimumReleaseAge": "5 days",
+      "labels": ["dependencies", "major-update"]
+    },
+    {
+      "description": "Automerge GitHub Actions (safe, doesn't affect code)",
+      "matchManagers": ["github-actions"],
+      "automerge": true,
+      "minimumReleaseAge": "3 days"
     }
   ],
-  "platformAutomerge": false,
-  "automergeType": "pr"
+  "lockFileMaintenance": {
+    "enabled": true,
+    "minimumReleaseAge": "0 days",
+    "automerge": true,
+    "schedule": ["before 4am on monday"]
+  },
+  "vulnerabilityAlerts": {
+    "labels": ["security"],
+    "minimumReleaseAge": "0 days",
+    "automerge": true
+  }
 }

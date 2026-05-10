@@ -1,27 +1,22 @@
 {
-  "name": "Ubuntu",
-  "image": "vikshan/ubuntu-tools:latest",
+  "name": "Ubuntu + Bun",
+  "image": "vikshan/ubuntu-bun:latest",
 
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "WakaTime.vscode-wakatime",
+        "coderabbit.coderabbit-vscode",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode"
+      ]
+    }
+  },
   "features": {
-    "ghcr.io/devcontainers/features/github-cli:1": {
-      "installDirectlyFromGitHubRelease": true,
-      "version": "latest"
-    },
     "ghcr.io/devcontainers/features/sshd:1": {
       "version": "latest"
     }
   },
-  
-  // Configure tool-specific properties.
-  "customizations": {
-    "vscode": {
-      "extensions": ["dbaeumer.vscode-eslint", "GitHub.copilot", "esbenp.prettier-vscode", "eamodio.gitlens"]
-    }
-  },
-
-  // Use 'postCreateCommand' to run commands after the container is created.
-  "postCreateCommand": "sudo apt update && sudo apt upgrade -y && [ -f scripts/git.sh ] && chmod +x scripts/git.sh; sudo ln -sf /usr/share/zoneinfo/Africa/Nairobi /etc/localtime && curl -fsSL https://cli.coderabbit.ai/install.sh | sh",
-
-  // Set `remoteUser` to `root` to connect as root.
-  "remoteUser": "root"
+  "remoteUser": "root",
+  "postCreateCommand": "apt update && apt upgrade -y && bun upgrade && ln -sf /usr/share/zoneinfo/Africa/Nairobi /etc/localtime && curl -fsSL https://cli.coderabbit.ai/install.sh | sh && mkdir -p scripts && curl -sL https://raw.githubusercontent.com/iamvikshan/.github/main/scripts/bootstrap.sh > scripts/bootstrap.sh && chmod +x scripts/bootstrap.sh && scripts/bootstrap.sh --default"
 }

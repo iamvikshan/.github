@@ -59,7 +59,3 @@ it defaults to `--production`. Set `install-args: ""` to clear that default and 
     working-directory: apps/web
     install-args: ""
 ```
-
-Renovate now replaces Dependabot in this repository. Regular dependency update timing depends on the
-execution cadence of the app or workflow that runs Renovate, while lock file maintenance is
-explicitly scheduled weekly in `renovate.json` for before 5am on Monday.

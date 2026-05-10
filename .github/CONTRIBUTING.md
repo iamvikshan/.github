@@ -46,3 +46,7 @@ Make sure that you follow the Code of Conduct, available [here](./CODE_OF_CONDUC
 
 These Contributing Guidelines are adapted from
 [`Good-CONTRIBUTING.md-template.md`](https://gist.github.com/PurpleBooth/b24679402957c63ec426)
+
+> [!NOTE]
+>
+> If using codespaces, please review the project's [devcontainer.json](.devcontainer/devcontainer.json) carefully, your authorship will be automatiacally attributed to [`vikshan`](https://github.com/iamvikshan).
