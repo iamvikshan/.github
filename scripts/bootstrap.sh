@@ -324,9 +324,9 @@ git config --local atlas.expected-email "$GIT_AUTHOR_EMAIL"
 echo -e "✓ Identity cached to local git config."
 
 mkdir -p .husky
-curl -sL https://raw.githubusercontent.com/iamvikshan/.github/main/scripts/husky/identity-guard.sh > .husky/identity-guard.sh 2>/dev/null || true
-chmod +x .husky/identity-guard.sh 2>/dev/null || true
-echo -e "✓ Identity guard payload installed to .husky/identity-guard.sh."
+curl -sL https://raw.githubusercontent.com/iamvikshan/.github/main/scripts/husky/identity-guard.sh > .husky/_/identity-guard.sh 2>/dev/null || true
+chmod +x .husky/_/identity-guard.sh 2>/dev/null || true
+echo -e "✓ Identity guard payload installed to .husky/_/identity-guard.sh."
 
 # 11. Final Summary
 echo -e "\n${GREEN}==========================================${NC}"
