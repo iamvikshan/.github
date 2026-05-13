@@ -49,4 +49,4 @@ These Contributing Guidelines are adapted from
 
 > [!NOTE]
 >
-> If using codespaces, please review the project's [devcontainer.json](.devcontainer/devcontainer.json) carefully, your authorship will be automatiacally attributed to [`vikshan`](https://github.com/iamvikshan).
+> If using codespaces, please review the project's [devcontainer.json](.devcontainer/devcontainer.json) carefully, your authorship may be automatiacally attributed to [`vikshan`](https://github.com/iamvikshan).
