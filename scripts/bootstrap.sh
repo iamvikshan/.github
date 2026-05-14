@@ -150,7 +150,7 @@ if [ ! -f "${KEY_PATH}.pub" ]; then
   echo -e "${RED}Cannot set local signing key. Exiting.${NC}" >&2
   exit 1
 fi
-git config --local user.signingkey "${KEY_PATH}.pub" 2>/dev/null || true
+git config --local user.signingkey "${KEY_PATH}.pub"
 
 # --- Helper Functions for API Keys ---
 ensure_jq() {
