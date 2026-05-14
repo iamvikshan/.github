@@ -145,6 +145,11 @@ git config --global user.signingkey "${KEY_PATH}.pub"
 git config --global commit.gpgsign true
 
 # Pin the repo to the generated signing key so stale host configs cannot win
+if [ ! -f "${KEY_PATH}.pub" ]; then
+  echo -e "${RED}ERROR: Public key file ${KEY_PATH}.pub does not exist.${NC}" >&2
+  echo -e "${RED}Cannot set local signing key. Exiting.${NC}" >&2
+  exit 1
+fi
 git config --local user.signingkey "${KEY_PATH}.pub" 2>/dev/null || true
 
 # --- Helper Functions for API Keys ---
