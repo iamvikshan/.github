@@ -144,6 +144,9 @@ git config --global gpg.format ssh
 git config --global user.signingkey "${KEY_PATH}.pub"
 git config --global commit.gpgsign true
 
+# Pin the repo to the generated signing key so stale host configs cannot win
+git config --local user.signingkey "${KEY_PATH}.pub" 2>/dev/null || true
+
 # --- Helper Functions for API Keys ---
 ensure_jq() {
   if ! command -v jq &> /dev/null; then
@@ -227,6 +230,36 @@ prune_gitlab_keys() {
   fi
 }
 
+enable_gitlab_force_push() {
+  if [[ -z "$GL_TOKEN" ]]; then return 0; fi
+
+  echo -e "Attempting to enable force pushes on GitLab main branch..."
+  ensure_jq || return 0
+
+  local project_id
+  project_id=$(curl -s --header "PRIVATE-TOKEN: $GL_TOKEN" \
+    "https://gitlab.com/api/v4/projects/${GL_NAMESPACE}%2F${REPO_NAME}" 2>/dev/null | jq -r '.id // empty' 2>/dev/null)
+
+  if [[ -z "$project_id" ]]; then
+    echo -e "${YELLOW}⚠️ Could not fetch GitLab project ID. Force push configuration skipped.${NC}"
+    echo -e "${YELLOW}   (This is expected for newly created projects; manually enable via GitLab UI if needed).${NC}"
+    return 1
+  fi
+
+  local http_status
+  http_status=$(curl -s -o /dev/null -w "%{http_code}" -X PATCH \
+    --header "PRIVATE-TOKEN: $GL_TOKEN" \
+    "https://gitlab.com/api/v4/projects/${project_id}/protected_branches/main?allow_force_push=true")
+
+  if [[ "$http_status" == "200" ]]; then
+    echo -e "✓ Force push enabled on GitLab main branch."
+  elif [[ "$http_status" == "404" ]]; then
+    echo -e "${YELLOW}⚠️ Protected branch 'main' not found on GitLab. This is expected for new projects.${NC}"
+  else
+    echo -e "${YELLOW}⚠️ Could not enable force push (HTTP $http_status). You may need to do this manually.${NC}"
+  fi
+}
+
 # 7. Upload SSH Key to APIs & Prune
 PUB_KEY=$(cat "${KEY_PATH}.pub")
 
@@ -298,6 +331,10 @@ if [[ "$GL_NAMESPACE" != "SKIP" ]]; then
   
   git remote set-url --add --push origin "$GL_REMOTE"
   echo -e "✓ GitLab push remote configured (${GL_NAMESPACE}/${REPO_NAME})."
+
+  if [[ -n "$GL_TOKEN" ]]; then
+    enable_gitlab_force_push
+  fi
 fi
 
 # 9. Fetch and Apply Git Hooks
