@@ -25,7 +25,30 @@ runs:
       run: |
         set -euo pipefail
 
-        workspace_root="$(realpath -m "$GITHUB_WORKSPACE")"
+        # Cross-platform realpath replacement that handles non-existent paths
+        realpath_m() {
+          local path="$1"
+          if [[ -e "$path" ]]; then
+            realpath "$path"
+          else
+            # Walk up until we find an existing ancestor, accumulating missing suffix
+            local suffix=""
+            local current="$path"
+            while [[ ! -e "$current" && "$current" != "/" && "$current" != "." ]]; do
+              suffix="/$(basename "$current")$suffix"
+              current="$(dirname "$current")"
+            done
+            local resolved
+            if [[ -e "$current" ]]; then
+              resolved="$(realpath "$current")"
+            else
+              resolved="$(pwd -P)"
+            fi
+            echo "${resolved}${suffix}"
+          fi
+        }
+
+        workspace_root="$(realpath_m "$GITHUB_WORKSPACE")"
         install_paths=()
         install_args=()
 
@@ -65,7 +88,7 @@ runs:
           bun install "${install_args[@]}"
         else
           for install_path in "${install_paths[@]}"; do
-            resolved_path="$(realpath -m "$workspace_root/$install_path")"
+            resolved_path="$(realpath_m "$workspace_root/$install_path")"
 
             case "$resolved_path" in
               "$workspace_root"|"$workspace_root"/*) ;;
