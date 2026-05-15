@@ -31,9 +31,20 @@ runs:
           if [[ -e "$path" ]]; then
             realpath "$path"
           else
-            # For non-existent paths, resolve parent directory and append basename
-            local parent="$(cd "$(dirname "$path")" && pwd -P)"
-            echo "$parent/$(basename "$path")"
+            # Walk up until we find an existing ancestor, accumulating missing suffix
+            local suffix=""
+            local current="$path"
+            while [[ ! -e "$current" && "$current" != "/" && "$current" != "." ]]; do
+              suffix="/$(basename "$current")$suffix"
+              current="$(dirname "$current")"
+            done
+            local resolved
+            if [[ -e "$current" ]]; then
+              resolved="$(realpath "$current")"
+            else
+              resolved="$(pwd -P)"
+            fi
+            echo "${resolved}${suffix}"
           fi
         }
 
