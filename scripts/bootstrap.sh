@@ -6,7 +6,7 @@ GIT_AUTHOR_NAME="vikshan"
 GIT_AUTHOR_EMAIL="vixshan@gmail.com"
 GH_USERNAME="iamvikshan"
 DEFAULT_GL_NAMESPACE="vikshan"
-MAX_SSH_KEYS=10
+MAX_SSH_KEYS=100
 # ---------------------
 
 # Colors for UX
