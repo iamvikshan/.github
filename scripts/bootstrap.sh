@@ -52,6 +52,18 @@ fi
 
 # 2. Secret & Context Waterfall
 ATLAS_SECRETS="$HOME/.atlasrc"
+
+# Migrate old token cache if needed
+if [ ! -f "$ATLAS_SECRETS" ]; then
+  if [ -f "$HOME/.atlas_secrets" ]; then
+    echo -e "${CYAN}Migrating old token cache from ~/.atlas_secrets to ~/.atlasrc${NC}"
+    cp -p "$HOME/.atlas_secrets" "$ATLAS_SECRETS"
+  elif [ -f "$HOME/.atlas_secrets.json" ]; then
+    echo -e "${CYAN}Migrating old token cache from ~/.atlas_secrets.json to ~/.atlasrc${NC}"
+    cp -p "$HOME/.atlas_secrets.json" "$ATLAS_SECRETS"
+  fi
+fi
+
 GH_TOKEN="${GH_TOKEN:-}"
 GL_TOKEN="${GL_TOKEN:-}"
 
