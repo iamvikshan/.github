@@ -60,7 +60,7 @@ git config --global user.name "$GIT_AUTHOR_NAME"
 git config --global user.email "$GIT_AUTHOR_EMAIL"
 
 # 4. Secret Waterfall (Quarantined & Cached)
-ATLAS_SECRETS="$HOME/.atlas_secrets"
+ATLAS_SECRETS="$HOME/.atlasrc"
 GH_TOKEN="${GH_TOKEN:-}"
 GL_TOKEN="${GL_TOKEN:-}"
 
