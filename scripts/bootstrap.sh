@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # --- Configuration ---
-GIT_AUTHOR_NAME="vikshan"
+GIT_AUTHOR_NAME="iamvikshan"
 GIT_AUTHOR_EMAIL="vixshan@gmail.com"
 GH_USERNAME="iamvikshan"
 DEFAULT_GL_NAMESPACE="vikshan"
