@@ -102,6 +102,10 @@ mask_token() {
   if [[ -z "$token" ]]; then echo "(empty)"; else echo "${token:0:4}********${token: -4}"; fi
 }
 
+lowercase() {
+  printf '%s' "$1" | tr '[:upper:]' '[:lower:]'
+}
+
 if [[ "$IS_INTERACTIVE" == "true" ]]; then
   echo -e "\n${CYAN}--- Configuration Review ---${NC}"
   while true; do
@@ -117,7 +121,7 @@ if [[ "$IS_INTERACTIVE" == "true" ]]; then
     read -p "Accept all [A] or enter a number to edit (1-6): " choice < /dev/tty
     choice=${choice:-A}
     
-    case "${choice,,}" in
+    case "$(lowercase "$choice")" in
       a|accept) break ;;
       1) read -sp "Enter GitHub Token: " GH_TOKEN < /dev/tty; echo ;;
       2) read -p "Enter GitHub Owner: " GH_OWNER < /dev/tty ;;
@@ -291,7 +295,7 @@ if [[ -n "$GH_TOKEN" ]]; then
   fi
 fi
 
-if [[ -n "$GL_TOKEN" && "${GL_NAMESPACE,,}" != "skip" ]]; then
+if [[ -n "$GL_TOKEN" && "$(lowercase "$GL_NAMESPACE")" != "skip" ]]; then
   HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
     -X POST \
     --header "PRIVATE-TOKEN: $GL_TOKEN" \
@@ -317,7 +321,7 @@ git config --unset-all remote.origin.pushurl || true
 git remote set-url --add --push origin "$GH_REMOTE"
 echo -e "✓ GitHub push remote configured (${GH_OWNER}/${GH_REPO})."
 
-if [[ "${GL_NAMESPACE,,}" != "skip" ]]; then
+if [[ "$(lowercase "$GL_NAMESPACE")" != "skip" ]]; then
   GL_URL="gitlab.com/${GL_NAMESPACE}/${GL_REPO}.git"
   if [[ -n "$GL_TOKEN" ]]; then GL_REMOTE="https://oauth2:${GL_TOKEN}@${GL_URL}"
   else GL_REMOTE="https://${GL_URL}"; fi
