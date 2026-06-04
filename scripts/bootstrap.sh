@@ -85,6 +85,11 @@ GH_REPO="${GH_REPO:-$(basename "$PWD")}"
 GL_NAMESPACE="${GL_NAMESPACE:-$DEFAULT_GL_NAMESPACE}"
 GL_REPO="${GL_REPO:-$GH_REPO}"
 
+# Tell Git to trust the current workspace before running any git commands
+if ! git config --global --get-all safe.directory | grep -qxF "$PWD"; then
+  git config --global --add safe.directory "$PWD"
+fi
+
 REMOTE_URL=$(git config --get remote.origin.url || true)
 if [[ -n "$REMOTE_URL" ]]; then
   if [[ "$REMOTE_URL" =~ github\.com[:/]([^/]+)/([^.]+)(\.git)?$ ]]; then
@@ -179,7 +184,11 @@ if [ ! -f "${KEY_PATH}.pub" ]; then
   echo -e "${RED}ERROR: Public key file ${KEY_PATH}.pub does not exist.${NC}" >&2
   exit 1
 fi
-git config --local user.signingkey "${KEY_PATH}.pub"
+
+# Safely overwrite Codespaces local GPG injection if inside a git tree
+if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  git config --local user.signingkey "${KEY_PATH}.pub"
+fi
 
 # --- Helper Functions for API Keys ---
 ensure_jq() {
@@ -348,8 +357,10 @@ fi
 
 # 9. Local Identity Guard Setup
 echo -e "\n--- Local Identity Guard ---"
-git config --local atlas.expected-name "$GIT_AUTHOR_NAME"
-git config --local atlas.expected-email "$GIT_AUTHOR_EMAIL"
+if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  git config --local atlas.expected-name "$GIT_AUTHOR_NAME"
+  git config --local atlas.expected-email "$GIT_AUTHOR_EMAIL"
+fi
 
 mkdir -p .husky/_
 curl -sL https://raw.githubusercontent.com/iamvikshan/.github/main/scripts/husky/identity-guard.sh > .husky/_/identity-guard.sh 2>/dev/null || true
