@@ -85,6 +85,11 @@ GH_REPO="${GH_REPO:-$(basename "$PWD")}"
 GL_NAMESPACE="${GL_NAMESPACE:-$DEFAULT_GL_NAMESPACE}"
 GL_REPO="${GL_REPO:-$GH_REPO}"
 
+# Tell Git to trust the current workspace before running any git commands
+if ! git config --global --get-all safe.directory | grep -qF "$PWD"; then
+  git config --global --add safe.directory "$PWD"
+fi
+
 REMOTE_URL=$(git config --get remote.origin.url || true)
 if [[ -n "$REMOTE_URL" ]]; then
   if [[ "$REMOTE_URL" =~ github\.com[:/]([^/]+)/([^.]+)(\.git)?$ ]]; then
@@ -154,9 +159,6 @@ EOF
 fi
 
 echo -e "\nConfiguring Git identity for ${GIT_AUTHOR_NAME}..."
-# Tell Git to trust the current workspace, regardless of directory ownership
-git config --global --add safe.directory "$PWD"
-
 git config --global user.name "$GIT_AUTHOR_NAME"
 git config --global user.email "$GIT_AUTHOR_EMAIL"
 
