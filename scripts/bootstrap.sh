@@ -86,7 +86,7 @@ GL_NAMESPACE="${GL_NAMESPACE:-$DEFAULT_GL_NAMESPACE}"
 GL_REPO="${GL_REPO:-$GH_REPO}"
 
 # Tell Git to trust the current workspace before running any git commands
-if ! git config --global --get-all safe.directory | grep -qF "$PWD"; then
+if ! git config --global --get-all safe.directory | grep -qxF "$PWD"; then
   git config --global --add safe.directory "$PWD"
 fi
 
