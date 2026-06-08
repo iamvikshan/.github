@@ -3,7 +3,7 @@
 # ==============================================================================
 
 # Ensure local bin is in PATH
-if [[ "${PATH}" != *"$HOME/.local/bin"* ]]; then
+if [[ ":${PATH}:" != *":$HOME/.local/bin:"* ]]; then
   export PATH="$HOME/.local/bin:${PATH}"
 fi
 
@@ -39,7 +39,7 @@ ZSH_THEME=""
 plugins=(git bun zsh-autosuggestions zsh-syntax-highlighting)
 
 # Load Oh My Zsh
-source $ZSH/oh-my-zsh.sh
+source "$ZSH"/oh-my-zsh.sh
 
 # Allow variable substitution in prompt
 setopt PROMPT_SUBST
@@ -55,7 +55,8 @@ __git_info() {
     if [[ -n "${branch}" ]]; then
         local dirty_flag=""
         # Show dirty flag locally, or if DevContainer config explicitly allows it
-        if [[ "$(git config --get devcontainers-theme.show-dirty 2>/dev/null)" == "1" ]] || [[ -z "${TERM_PROGRAM}" ]]; then
+        # Skip dirty check if SKIP_GIT_DIRTY_CHECK is set
+        if [[ -z "${SKIP_GIT_DIRTY_CHECK}" ]] && { [[ "$(git config --get devcontainers-theme.show-dirty 2>/dev/null)" == "1" ]] || [[ -z "${TERM_PROGRAM}" ]]; }; then
             if git --no-optional-locks ls-files --error-unmatch -m --directory --no-empty-directory -o --exclude-standard ":/*" > /dev/null 2>&1; then
                 dirty_flag=" %F{yellow}✗"
             fi
