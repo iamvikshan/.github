@@ -118,6 +118,23 @@ EOF
 
 echo -e "${GREEN}✓ .zshrc configured successfully.${NC}"
 
+echo -e "${YELLOW}▶ Adding Zsh fallback to .bashrc...${NC}"
+# If bash is ever launched interactively, instantly switch to Zsh
+BASH_FALLBACK_SNIPPET='
+# Automatically switch to Zsh
+if [[ $- == *i* ]] && [ -x "$(command -v zsh)" ]; then
+    export SHELL="$(command -v zsh)"
+    exec zsh -l
+fi
+'
+
+if ! grep -q 'exec zsh' "$HOME/.bashrc" 2>/dev/null; then
+    echo "$BASH_FALLBACK_SNIPPET" >> "$HOME/.bashrc"
+    echo -e "${GREEN}✓ Fallback added to .bashrc.${NC}"
+else
+    echo -e "${BLUE}ℹ Zsh fallback already present in .bashrc.${NC}"
+fi
+
 # 5. Change Default Shell
 echo -e "${YELLOW}▶ Changing default shell to Zsh...${NC}"
 ZSH_PATH=$(command -v zsh)
