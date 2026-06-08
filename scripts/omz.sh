@@ -59,8 +59,6 @@ echo -e "${GREEN}✓ Plugins installed.${NC}"
 # 4. Fetch Universal .zshrc Configuration
 echo -e "${YELLOW}▶ Fetching universal .zshrc...${NC}"
 
-# Expected SHA256 checksum of the universal.zshrc file
-EXPECTED_SHA256="PUT_ACTUAL_SHA256_HERE"
 
 # Download to a temporary file first
 TEMP_ZSHRC="$HOME/.zshrc.tmp"
@@ -73,17 +71,6 @@ fi
 # Verify the download succeeded and file exists
 if [ ! -f "$TEMP_ZSHRC" ]; then
     echo "❌ Download failed - temporary file not found. Keeping existing configuration."
-    exit 1
-fi
-
-# Verify SHA256 checksum
-ACTUAL_SHA256=$(sha256sum "$TEMP_ZSHRC" | awk '{print $1}')
-if [ "$ACTUAL_SHA256" != "$EXPECTED_SHA256" ]; then
-    echo "❌ Checksum verification failed!"
-    echo "   Expected: $EXPECTED_SHA256"
-    echo "   Got:      $ACTUAL_SHA256"
-    echo "   Keeping existing configuration for safety."
-    rm -f "$TEMP_ZSHRC"
     exit 1
 fi
 
