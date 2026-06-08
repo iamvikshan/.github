@@ -124,11 +124,15 @@ BASH_FALLBACK_SNIPPET='
 # Automatically switch to Zsh
 if [[ $- == *i* ]] && [ -x "$(command -v zsh)" ]; then
     export SHELL="$(command -v zsh)"
-    exec zsh -l
+    if shopt -q login_shell; then
+        exec zsh -l
+    else
+        exec zsh
+    fi
 fi
 '
 
-if ! grep -q 'exec zsh' "$HOME/.bashrc" 2>/dev/null; then
+if ! grep -Eq '^[[:space:]]*exec[[:space:]]+zsh' "$HOME/.bashrc" 2>/dev/null; then
     echo "$BASH_FALLBACK_SNIPPET" >> "$HOME/.bashrc"
     echo -e "${GREEN}✓ Fallback added to .bashrc.${NC}"
 else
