@@ -84,7 +84,11 @@ runs:
         fi
 
         for install_path in "${install_paths[@]}"; do
-          resolved_path="$(realpath_m "$workspace_root/$install_path")"
+          if [[ "$install_path" = /* ]]; then
+            resolved_path="$(realpath_m "$install_path")"
+          else
+            resolved_path="$(realpath_m "$workspace_root/$install_path")"
+          fi
 
           case "$resolved_path" in
             "$workspace_root"|"$workspace_root"/*) ;;

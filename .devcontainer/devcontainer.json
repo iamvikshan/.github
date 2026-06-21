@@ -9,7 +9,7 @@
         "coderabbit.coderabbit-vscode",
         "dbaeumer.vscode-eslint",
         "esbenp.prettier-vscode",
-        "bungcip.better-toml"
+        "tamasfe.even-better-toml"
       ]
     }
   },
@@ -19,5 +19,5 @@
     }
   },
   "remoteUser": "root",
-  "postCreateCommand": "apt update && apt upgrade -y && scripts/bootstrap.sh --default"
+  "postCreateCommand": "apt update && scripts/bootstrap.sh --default"
 }

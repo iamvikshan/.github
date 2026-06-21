@@ -9,7 +9,6 @@ on:
     inputs:
       path-to-document:
         type: string
-        default: "https://github.com/iamvikshan/.github/blob/main/.github/CLA.md"
         required: false
 
 permissions:
@@ -25,7 +24,7 @@ jobs:
       - name: "CLA Assistant"
         if:
           (github.event.comment.body == 'recheck' || github.event.comment.body == 'I have read the CLA Document and I hereby sign
-          the CLA') || github.event_name == 'pull_request_target'
+          the CLA') || github.event_name == 'pull_request_target' || github.event_name == 'workflow_call'
         uses: contributor-assistant/github-action@v2.6.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
