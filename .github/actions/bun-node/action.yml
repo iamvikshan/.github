@@ -5,6 +5,10 @@ inputs:
     description: "Node.js version to set up"
     required: false
     default: "latest"
+  working-directory:
+    description: "The directory to install dependencies in (if install-paths is empty)"
+    required: false
+    default: "."
   install-paths:
     description: "Newline-separated paths to install dependencies in, relative to the workspace root"
     required: false
@@ -22,7 +26,8 @@ runs:
         node-version: ${{ inputs.node-version }}
 
     - name: Setup Bun and install dependencies
-      uses: iamvikshan/.github/.github/actions/setup-bun@main
+      uses: iamvikshan/.github/.github/actions/bun@main
       with:
+        working-directory: ${{ inputs.working-directory }}
         install-paths: ${{ inputs.install-paths }}
         install-args: ${{ inputs.install-args }}

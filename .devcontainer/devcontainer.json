@@ -8,7 +8,8 @@
         "WakaTime.vscode-wakatime",
         "coderabbit.coderabbit-vscode",
         "dbaeumer.vscode-eslint",
-        "esbenp.prettier-vscode"
+        "esbenp.prettier-vscode",
+        "bungcip.better-toml"
       ]
     }
   },
@@ -18,5 +19,5 @@
     }
   },
   "remoteUser": "root",
-  "postCreateCommand": "apt update && apt upgrade -y && bun upgrade && ln -sf /usr/share/zoneinfo/Africa/Nairobi /etc/localtime && curl -fsSL https://cli.coderabbit.ai/install.sh | sh && mkdir -p scripts && curl -sL https://raw.githubusercontent.com/iamvikshan/.github/main/scripts/bootstrap.sh > scripts/bootstrap.sh && chmod +x scripts/bootstrap.sh && scripts/bootstrap.sh --default"
+  "postCreateCommand": "apt update && apt upgrade -y && scripts/bootstrap.sh --default"
 }

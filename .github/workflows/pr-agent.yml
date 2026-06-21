@@ -1,0 +1,35 @@
+name: PR Agent (Gemini)
+
+on:
+  pull_request:
+    types: [opened, reopened, ready_for_review]
+  issue_comment:
+    types: [created]
+  workflow_call:
+    inputs:
+      extra_config_url:
+        type: string
+        default: "https://raw.githubusercontent.com/iamvikshan/.github/main/configs/.pr_agent.toml"
+        required: false
+    secrets:
+      GH_TOKEN:
+        required: false
+      GEMINI:
+        required: false
+
+jobs:
+  pr_agent_job:
+    # Ensure the bot does not trigger feedback loops on its own comments
+    if: ${{ github.actor != 'github-actions[bot]' && !contains(github.actor, '[bot]') }}
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+      contents: read
+    steps:
+      - name: PR Agent action step
+        uses: The-PR-Agent/pr-agent@vv0.36.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN || secrets.GITHUB_TOKEN }}
+          GOOGLE_AI_STUDIO.GEMINI_API_KEY: ${{ secrets.GEMINI }}
+          PR_AGENT_EXTRA_CONFIG_URL: ${{ inputs.extra_config_url || 'https://raw.githubusercontent.com/iamvikshan/.github/main/configs/.pr_agent.toml' }}
