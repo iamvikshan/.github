@@ -88,7 +88,7 @@ elif [[ "${CODESPACES}" == "true" || "${TERM_PROGRAM}" == "vscode" ]]; then
     elif command -v xsel >/dev/null 2>&1 && [[ -n "${DISPLAY}${WAYLAND_DISPLAY}" ]]; then
       xsel --clipboard --input
     else
-      printf '\033]52;c;%s\a' "$(base64 -w 0 | tr -d '\n')"
+      printf '\033]52;c;%s\a' "$(base64 | tr -d '\n')"
     fi
   }
 else
