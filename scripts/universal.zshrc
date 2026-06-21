@@ -75,7 +75,10 @@ fi
 # Environment-Aware Clipboard Aliasing
 # ==============================================================================
 
-if [[ "${CODESPACES}" == "true" || "${TERM_PROGRAM}" == "vscode" ]]; then
+if [[ "$(uname)" == "Darwin" ]]; then
+  # macOS: native pbcopy is available, do nothing
+  :
+elif [[ "${CODESPACES}" == "true" || "${TERM_PROGRAM}" == "vscode" ]]; then
   # Codespaces / VS Code Native Environment
   # VS Code handles clipboard sync automatically via the browser/IPC.
   # We alias pbcopy to xclip/xsel if available, or fallback to OSC 52.
