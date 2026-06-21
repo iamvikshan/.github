@@ -31,7 +31,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           path-to-signatures: "signatures/signatures.json"
-          path-to-document: ${{ inputs.path-to-document || 'https://github.com/iamvikshan/.github/blob/main/.github/CLA.md' }}
+          path-to-document: ${{ inputs.path-to-document || format('https://github.com/{0}/.github/blob/main/.github/CLA.md', github.repository_owner) }}
           branch: "main"
           allowlist: dependabot-preview[bot], dependabot[bot], *bot, bot*
           create-file-commit-message: ":wrench: Creating a file for storing CLA signatures"
