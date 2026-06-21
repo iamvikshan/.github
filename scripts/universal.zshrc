@@ -94,8 +94,7 @@ elif [[ "${CODESPACES}" == "true" || "${TERM_PROGRAM}" == "vscode" ]]; then
 else
   # Raw VPS / SSH Session
   # Force the OSC 52 terminal escape sequence.
-  # The '-w 0' flag prevents GNU base64 from breaking the sequence with newlines.
   pbcopy() {
-    printf '\033]52;c;%s\a' "$(base64 -w 0 | tr -d '\n')"
+    printf '\033]52;c;%s\a' "$(base64 | tr -d '\n')"
   }
 fi

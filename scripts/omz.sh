@@ -69,14 +69,16 @@ if ! curl -fsSL https://raw.githubusercontent.com/iamvikshan/.github/refs/heads/
 fi
 
 # Verify the download succeeded
-if [ ! -f "$TEMP_ZSHRC" ]; then
-    echo -e "${RED}[FAIL] Download failed - temporary file not found. Keeping existing configuration.${NC}"
+if [ ! -s "$TEMP_ZSHRC" ]; then
+    echo -e "${RED}[FAIL] Download failed - temporary file not found or empty. Keeping existing configuration.${NC}"
     exit 1
 fi
 
 # Backup existing .zshrc
 if [ -f "$HOME/.zshrc" ]; then
-    mv "$HOME/.zshrc" "$HOME/.zshrc.backup-$(date +%s)"
+    BACKUP_PATH="$HOME/.zshrc.backup-$(date +%s)"
+    mv "$HOME/.zshrc" "$BACKUP_PATH"
+    echo -e "${BLUE}[INFO] Original .zshrc backed up to $BACKUP_PATH${NC}"
 fi
 
 # Atomically move temp file to final location
