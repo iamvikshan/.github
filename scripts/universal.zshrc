@@ -29,10 +29,10 @@ if [[ -z "$(git config --get core.editor)" && -z "${GIT_EDITOR}" ]]; then
   fi
 fi
 
-# Path to your oh-my-zsh installation.
+# Path to Oh My Zsh installation
 export ZSH="$HOME/.oh-my-zsh"
 
-# Set theme to empty string since we are building a custom prompt below
+# Set theme to empty string since we build a custom prompt below
 ZSH_THEME=""
 
 # Plugins list
@@ -46,7 +46,6 @@ setopt PROMPT_SUBST
 
 # Custom Git Info Function
 __git_info() {
-    # Respect DevContainer hide-status configs
     if [[ "$(git config --get devcontainers-theme.hide-status 2>/dev/null)" == "1" ]] || [[ "$(git config --get codespaces-theme.hide-status 2>/dev/null)" == "1" ]]; then
         return
     fi
@@ -54,22 +53,48 @@ __git_info() {
     branch=$(git --no-optional-locks symbolic-ref --short HEAD 2>/dev/null || git --no-optional-locks rev-parse --short HEAD 2>/dev/null)
     if [[ -n "${branch}" ]]; then
         local dirty_flag=""
-        # Show dirty flag locally, or if DevContainer config explicitly allows it
-        # Skip dirty check if SKIP_GIT_DIRTY_CHECK is set
         if [[ -z "${SKIP_GIT_DIRTY_CHECK}" ]] && { [[ "$(git config --get devcontainers-theme.show-dirty 2>/dev/null)" == "1" ]] || [[ -z "${TERM_PROGRAM}" ]]; }; then
             if git --no-optional-locks ls-files --error-unmatch -m --directory --no-empty-directory -o --exclude-standard ":/*" > /dev/null 2>&1; then
-                dirty_flag=" %F{yellow}✗"
+                dirty_flag=" %F{yellow}x"
             fi
         fi
         echo "%F{cyan}(%F{red}${branch}${dirty_flag}%F{cyan}) "
     fi
 }
 
-# The Prompt String (Prefers GITHUB_USER if in a container, falls back to %n standard user)
-PROMPT='%(?.%F{green}.%F{red})➜%f %F{green}${GITHUB_USER:-%n}%f %F{blue}%4~%f $(__git_info)%f$ '
+# The Prompt String
+PROMPT='%(?.%F{green}.%F{red})->%f %F{green}${GITHUB_USER:-%n}%f %F{blue}%4~%f $(__git_info)%f$ '
 
 # Terminal Title Updates
 if [[ "$TERM" == "xterm" || "$TERM" == "xterm-256color" || "$TERM_PROGRAM" == "vscode" ]]; then
     preexec() { print -Pn "\e]0;%n@%m: $1\a" }
     precmd() { print -Pn "\e]0;%n@%m: zsh\a" }
+fi
+
+# ==============================================================================
+# Environment-Aware Clipboard Aliasing
+# ==============================================================================
+
+if [[ "$(uname)" == "Darwin" ]]; then
+  # macOS: native pbcopy is available, do nothing
+  :
+elif [[ "${CODESPACES}" == "true" || "${TERM_PROGRAM}" == "vscode" ]]; then
+  # Codespaces / VS Code Native Environment
+  # VS Code handles clipboard sync automatically via the browser/IPC.
+  # We alias pbcopy to xclip/xsel if available, or fallback to OSC 52.
+  pbcopy() {
+    if command -v xclip >/dev/null 2>&1 && [[ -n "${DISPLAY}${WAYLAND_DISPLAY}" ]]; then
+      xclip -selection clipboard
+    elif command -v xsel >/dev/null 2>&1 && [[ -n "${DISPLAY}${WAYLAND_DISPLAY}" ]]; then
+      xsel --clipboard --input
+    else
+      printf '\033]52;c;%s\a' "$(base64 | tr -d '\n')"
+    fi
+  }
+else
+  # Raw VPS / SSH Session
+  # Force the OSC 52 terminal escape sequence.
+  pbcopy() {
+    printf '\033]52;c;%s\a' "$(base64 | tr -d '\n')"
+  }
 fi

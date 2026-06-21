@@ -7,9 +7,8 @@
       "extensions": [
         "WakaTime.vscode-wakatime",
         "coderabbit.coderabbit-vscode",
-        "dbaeumer.vscode-eslint",
-        "esbenp.prettier-vscode",
-        "tamasfe.even-better-toml"
+        "tamasfe.even-better-toml",
+        "oxc.oxc-vscode"
       ]
     }
   },
