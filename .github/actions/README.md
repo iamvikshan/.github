@@ -108,6 +108,12 @@ This repository also publishes reusable workflows under `.github/workflows/`. Th
 
 Integrates the Contributor License Agreement assistant to check and sign CLAs via PR comments.
 
+#### Secrets
+
+| Secret | Description | Required |
+| :--- | :--- | :---: |
+| `GITHUB_TOKEN` | GitHub token or PAT used to update status checks and store signatures in the repository/Gist. | No (defaults to repository context token) |
+
 #### Caller Workflow Example
 
 ```yaml
@@ -122,8 +128,8 @@ on:
 jobs:
   run-cla:
     uses: iamvikshan/.github/.github/workflows/cla.yml@main
+    secrets: inherit
     permissions:
-      actions: write
       contents: write
       pull-requests: write
       statuses: write
@@ -135,20 +141,41 @@ jobs:
 
 Runs PR-Agent reviews, suggestions, and chat interfaces on Pull Requests using Google Gemini. It automatically downloads and merges the centralized configuration from `configs/.pr_agent.toml` of this repository.
 
+#### Secrets
+
+| Secret | Description | Required |
+| :--- | :--- | :---: |
+| `GITHUB_TOKEN` | GitHub token or PAT with repository write scope for review comments. | No (defaults to caller GITHUB_TOKEN) |
+| `GEMINI_TOKEN` | Gemini API Key used to communicate with Google AI Studio. | **Yes** |
+
 #### Caller Workflow Example
 
+##### Explicit Secrets Mapping (Recommended for custom secret names)
 ```yaml
 name: Code Review
 
 on:
   pull_request:
-    types: [opened, reopened, ready_for_review]
+    types: [opened, reopened, ready_for_review, synchronize]
   issue_comment:
     types: [created]
 
 jobs:
   review:
+    # Gating the job ensures Gemini API and secrets aren't exposed on non-PR comments
+    if: ${{ github.event_name == 'pull_request' || github.event.issue.pull_request }}
     uses: iamvikshan/.github/.github/workflows/pr-agent.yml@main
-    # Using secrets: inherit allows passing the necessary secrets (GEMINI and GH_TOKEN) seamlessly
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    secrets:
+      GITHUB_TOKEN: ${{ secrets.GH_PAT }}       # Map custom PAT
+      GEMINI_TOKEN: ${{ secrets.GEMINI }}       # Map Gemini Token
+```
+
+##### Seamless Inheritance
+
+```yaml
     secrets: inherit
 ```

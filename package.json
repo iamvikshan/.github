@@ -1,0 +1,15 @@
+{
+  "scripts": {
+    "f": "oxfmt --write .",
+    "f:check": "oxfmt --check .",
+    "prepare": "test -d .git && husky || true",
+    "bs": "chmod +x scripts/bootstrap.sh && scripts/bootstrap.sh",
+    "upd": "apt update && apt upgrade -y && bun upgrade && bun update --latest && bun i && bun f"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^17.0.8",
+    "oxfmt": "^0.56.0"
+  }
+}

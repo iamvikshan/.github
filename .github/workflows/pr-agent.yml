@@ -12,10 +12,12 @@ on:
         default: "https://raw.githubusercontent.com/iamvikshan/.github/main/configs/.pr_agent.toml"
         required: false
     secrets:
-      GH_TOKEN:
+      GITHUB_TOKEN:
+        description: "GitHub token (or PAT) for PR-Agent to read PRs and write review comments."
         required: false
-      GEMINI:
-        required: false
+      GEMINI_TOKEN:
+        description: "Gemini API key used by PR-Agent to generate AI reviews."
+        required: true
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.event.issue.number || github.run_id }}
@@ -34,6 +36,6 @@ jobs:
       - name: PR Agent action step
         uses: The-PR-Agent/pr-agent@v0.36.1
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN || secrets.GITHUB_TOKEN }}
-          GOOGLE_AI_STUDIO.GEMINI_API_KEY: ${{ secrets.GEMINI }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GOOGLE_AI_STUDIO.GEMINI_API_KEY: ${{ secrets.GEMINI_TOKEN }}
           PR_AGENT_EXTRA_CONFIG_URL: ${{ inputs.extra_config_url }}
