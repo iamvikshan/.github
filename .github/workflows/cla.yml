@@ -10,6 +10,10 @@ on:
       path-to-document:
         type: string
         required: false
+    secrets:
+      GITHUB_TOKEN:
+        description: "GitHub token or PAT used by the CLA assistant to write signatures and update PR statuses."
+        required: false
 
 permissions:
   actions: write
