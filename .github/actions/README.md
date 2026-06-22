@@ -175,7 +175,7 @@ jobs:
 ```
 
 ##### Seamless Inheritance
+
 ```yaml
     secrets: inherit
-```
 ```
