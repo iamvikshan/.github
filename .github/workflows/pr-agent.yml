@@ -13,8 +13,10 @@ on:
         required: false
     secrets:
       GH_TOKEN:
+        description: "GitHub token (or PAT) for PR-Agent to read PRs and write review comments."
         required: false
       GEMINI:
+        description: "Gemini API key used by PR-Agent to generate AI reviews."
         required: false
 
 concurrency:
@@ -31,7 +33,7 @@ jobs:
       pull-requests: write
       contents: write
     steps:
-      - name: PR Agent action step
+       - name: PR Agent action step
         uses: The-PR-Agent/pr-agent@v0.36.1
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN || secrets.GITHUB_TOKEN }}
