@@ -145,11 +145,12 @@ Runs PR-Agent reviews, suggestions, and chat interfaces on Pull Requests using G
 
 | Secret | Description | Required |
 | :--- | :--- | :---: |
-| `GH_TOKEN` | GitHub token or PAT with repository write scope for review comments. | No |
-| `GEMINI` | Gemini API Key used to communicate with Google AI Studio. | Yes |
+| `GITHUB_TOKEN` | GitHub token or PAT with repository write scope for review comments. | No (defaults to caller GITHUB_TOKEN) |
+| `GEMINI_TOKEN` | Gemini API Key used to communicate with Google AI Studio. | **Yes** |
 
 #### Caller Workflow Example
 
+##### Explicit Secrets Mapping (Recommended for custom secret names)
 ```yaml
 name: Code Review
 
@@ -168,6 +169,13 @@ jobs:
       contents: read
       pull-requests: write
       issues: write
+    secrets:
+      GITHUB_TOKEN: ${{ secrets.GH_PAT }}       # Map custom PAT
+      GEMINI_TOKEN: ${{ secrets.GEMINI }}       # Map Gemini Token
+```
+
+##### Seamless Inheritance
+```yaml
     secrets: inherit
 ```
 ```
