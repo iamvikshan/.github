@@ -166,7 +166,7 @@ jobs:
     if: ${{ github.event_name == 'pull_request' || github.event.issue.pull_request }}
     uses: iamvikshan/.github/.github/workflows/pr-agent.yml@main
     permissions:
-      contents: read
+      contents: write
       pull-requests: write
       issues: write
     secrets:
