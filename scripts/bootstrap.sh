@@ -176,6 +176,11 @@ else
   echo -e "✓ SSH signing key already exists."
 fi
 
+if [ ! -f "${KEY_PATH}.pub" ]; then
+  echo -e "${RED}ERROR: Public key file ${KEY_PATH}.pub does not exist.${NC}" >&2
+  exit 1
+fi
+
 # Purge injected configurations and wrappers across all levels
 git config --system --unset-all user.signingkey 2>/dev/null || true
 git config --global --unset-all user.signingkey 2>/dev/null || true
@@ -185,11 +190,6 @@ git config --global --unset-all gpg.ssh.program 2>/dev/null || true
 if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   git config --local --unset-all user.signingkey 2>/dev/null || true
   git config --local --unset-all gpg.ssh.program 2>/dev/null || true
-fi
-
-if [ ! -f "${KEY_PATH}.pub" ]; then
-  echo -e "${RED}ERROR: Public key file ${KEY_PATH}.pub does not exist.${NC}" >&2
-  exit 1
 fi
 
 # Set global configuration with --replace-all for absolute certainty
