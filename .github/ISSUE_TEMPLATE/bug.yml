@@ -1,6 +1,6 @@
 name: Bug Report
-description: "Oops! I found a bug in the system!"
-title: "[Bug]: "
+description: 'Oops! I found a bug in the system!'
+title: '[Bug]: '
 assignees:
   - iamvikshan
 body:
@@ -14,7 +14,8 @@ body:
     attributes:
       label: What's the bug?
       description: "Tell us about the bug you've uncovered."
-      placeholder: "What happened? What were you expecting instead? Are you okay btw?"
+      placeholder:
+        'What happened? What were you expecting instead? Are you okay btw?'
     validations:
       required: true
 
@@ -22,7 +23,9 @@ body:
     id: reproduction-steps
     attributes:
       label: How to catch the bug.
-      description: "Help us replicate the bug so we can track it down. Hopefully you are not scared of insects!"
+      description:
+        'Help us replicate the bug so we can track it down. Hopefully you are
+        not scared of insects!'
       placeholder: |
         1. Go to '...'
         2. Click on '....'
@@ -35,7 +38,7 @@ body:
     id: priority
     attributes:
       label: How urgent is this?
-      description: "How important is this issue?"
+      description: 'How important is this issue?'
       options:
         - Critical (Blocking my work — SOS!)
         - High (Would significantly improve my workflow)
@@ -54,7 +57,8 @@ body:
           required: true
         - label: I've searched for similar bugs and didn't find a match
           required: true
-        - label: I'm ready to share more info if needed (we might need your help!)
+        - label:
+            I'm ready to share more info if needed (we might need your help!)
           required: true
 
   - type: checkboxes

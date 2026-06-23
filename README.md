@@ -7,8 +7,8 @@
 
 # 🏥 Vikshan's `.github`
 
-This repository contains the common community health files that i (vikshan), use for my projects.
-These policies are adopted across my repos:
+This repository contains the common community health files that i (vikshan), use
+for my projects. These policies are adopted across my repos:
 
 - [Code of Conduct](./.github/CODE_OF_CONDUCT.md)
 - [Contributing Guidelines](./.github/CONTRIBUTING.md)
@@ -18,4 +18,5 @@ These policies are adopted across my repos:
 
 Other files included in this repository are:
 
-- [signatures.json](./signatures/signatures.json) contains the list of users who have signed my CLA
+- [signatures.json](./signatures/signatures.json) contains the list of users who
+  have signed my CLA

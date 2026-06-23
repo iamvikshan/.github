@@ -1,7 +1,8 @@
 name: Feature Request
-description: "Got a brilliant idea? Share it with us, and let's make magic happen!"
-title: "[Feature]: "
-labels: ["enhancement"]
+description:
+  "Got a brilliant idea? Share it with us, and let's make magic happen!"
+title: '[Feature]: '
+labels: ['enhancement']
 assignees:
   - iamvikshan
 body:
@@ -14,8 +15,11 @@ body:
     id: problem-description
     attributes:
       label: What's the spark behind this idea?
-      description: "Is your feature request related to a problem? Tell us what's bugging you!"
-      placeholder: "I'm always frustrated when [...] I wish it could do this instead!"
+      description:
+        "Is your feature request related to a problem? Tell us what's bugging
+        you!"
+      placeholder:
+        "I'm always frustrated when [...] I wish it could do this instead!"
     validations:
       required: true
 
@@ -23,8 +27,10 @@ body:
     id: alternatives
     attributes:
       label: Did you brainstorm other ways?
-      description: "Have you thought of any alternative solutions or features? We'd love to hear them!"
-      placeholder: "What other approaches have you considered? Lay it on us!"
+      description:
+        "Have you thought of any alternative solutions or features? We'd love to
+        hear them!"
+      placeholder: 'What other approaches have you considered? Lay it on us!'
     validations:
       required: false
 
@@ -32,7 +38,9 @@ body:
     id: priority
     attributes:
       label: How badly do you want this?
-      description: "How important is this feature to you? Is it a game-changer or just a nice-to-have?"
+      description:
+        'How important is this feature to you? Is it a game-changer or just a
+        nice-to-have?'
       options:
         - Critical (Blocking my work — SOS!)
         - High (Would significantly improve my workflow)
@@ -47,9 +55,11 @@ body:
       label: Double-checklist
       description: "Before we dive in, let's make sure everything's good to go."
       options:
-        - label: I've searched for similar feature requests and didn't find a match
+        - label:
+            I've searched for similar feature requests and didn't find a match
           required: true
-        - label: I'm ready to share more info if needed (we might need your help!)
+        - label:
+            I'm ready to share more info if needed (we might need your help!)
           required: true
 
   - type: checkboxes
