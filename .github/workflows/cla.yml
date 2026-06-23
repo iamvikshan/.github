@@ -1,4 +1,4 @@
-name: "CLA Assistant"
+name: 'CLA Assistant'
 on:
   issue_comment:
     types: [created]
@@ -11,8 +11,10 @@ on:
         type: string
         required: false
     secrets:
-      GITHUB_TOKEN:
-        description: "GitHub token or PAT used by the CLA assistant to write signatures and update PR statuses."
+      token:
+        description:
+          'Optional GitHub token or PAT used to write signatures to a different
+          repository/workspace.'
         required: false
 
 permissions:
@@ -25,22 +27,31 @@ jobs:
   CLAAssistant:
     runs-on: ubuntu-latest
     steps:
-      - name: "CLA Assistant"
+      - name: 'CLA Assistant'
         if:
-          (github.event.comment.body == 'recheck' || github.event.comment.body == 'I have read the CLA Document and I hereby sign
-          the CLA') || github.event_name == 'pull_request_target' || github.event_name == 'workflow_call'
+          (github.event.comment.body == 'recheck' || github.event.comment.body
+          == 'I have read the CLA Document and I hereby sign the CLA') ||
+          github.event_name == 'pull_request_target' || github.event_name ==
+          'workflow_call'
         uses: contributor-assistant/github-action@v2.6.1
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.token || secrets.GITHUB_TOKEN }}
         with:
-          path-to-signatures: "signatures/signatures.json"
-          path-to-document: ${{ inputs.path-to-document || format('https://github.com/{0}/.github/blob/main/.github/CLA.md', github.repository_owner) }}
-          branch: "main"
+          path-to-signatures: 'signatures/signatures.json'
+          path-to-document:
+            ${{ inputs.path-to-document ||
+            format('https://github.com/{0}/.github/blob/main/.github/CLA.md',
+            github.repository_owner) }}
+          branch: 'main'
           allowlist: dependabot-preview[bot], dependabot[bot], *bot, bot*
-          create-file-commit-message: ":wrench: Creating a file for storing CLA signatures"
-          signed-commit-message: ":wrench: @$contributorName has signed the CLA in #$pullRequestNo"
+          create-file-commit-message:
+            ':wrench: Creating a file for storing CLA signatures'
+          signed-commit-message:
+            ':wrench: @$contributorName has signed the CLA in #$pullRequestNo'
           custom-notsigned-prcomment:
-            "Thanks for your submission! We ask that $you sign our [Contributor License Agreement](https://github.com/${{
-            github.repository_owner }}/.github/blob/main/.github/CLA.md) before we can accept your contribution. You can sign the
-            CLA by adding a comment below using this text:"
-          custom-allsigned-prcomment: "✍️ All contributors have signed the CLA"
+            'Thanks for your submission! We ask that $you sign our [Contributor
+            License Agreement](https://github.com/${{ github.repository_owner
+            }}/.github/blob/main/.github/CLA.md) before we can accept your
+            contribution. You can sign the CLA by adding a comment below using
+            this text:'
+          custom-allsigned-prcomment: '✍️ All contributors have signed the CLA'
