@@ -4,3 +4,4 @@ node_modules
 bun.lock
 .atlas
 hooks/unresolved_comments_report.md
+scripts/hooks/

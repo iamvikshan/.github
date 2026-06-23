@@ -1,7 +1,6 @@
 {
   "name": "Ubuntu + Bun",
   "image": "vikshan/ubuntu-bun:latest",
-
   "customizations": {
     "vscode": {
       "extensions": [
@@ -18,5 +17,5 @@
     }
   },
   "remoteUser": "root",
-  "postCreateCommand": "apt update && scripts/bootstrap.sh --default"
+  "postCreateCommand": "bun i && bun bs"
 }

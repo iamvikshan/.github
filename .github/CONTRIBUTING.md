@@ -14,8 +14,8 @@ Thank you for creating them!
 
 ## Pull Requests
 
-Pull requests are a great way to get your ideas into this repository. When deciding whether to merge
-a pull request, the following factors are considered:
+Pull requests are a great way to get your ideas into this repository. When
+deciding whether to merge a pull request, the following factors are considered:
 
 ### Does it state intent
 
@@ -27,10 +27,11 @@ For example:
 
 Doesn't tell me anything about why you're doing that
 
-> Add link to code of conduct in README.md because users don't always look in the CONTRIBUTING.md
+> Add link to code of conduct in README.md because users don't always look in
+> the CONTRIBUTING.md
 
-Tells me the problem that you have found, and the pull request shows me the action you have taken to
-solve it.
+Tells me the problem that you have found, and the pull request shows me the
+action you have taken to solve it.
 
 ### Is it of good quality
 
@@ -40,7 +41,8 @@ solve it.
 
 ### Does it follow the Code of Conduct
 
-Make sure that you follow the Code of Conduct, available [here](./CODE_OF_CONDUCT.md).
+Make sure that you follow the Code of Conduct, available in the
+[Code of Conduct](./CODE_OF_CONDUCT.md).
 
 ## Credits
 
@@ -49,4 +51,7 @@ These Contributing Guidelines are adapted from
 
 > [!NOTE]
 >
-> If using codespaces, please review the project's [devcontainer.json](.devcontainer/devcontainer.json) carefully, your authorship may be automatiacally attributed to [`vikshan`](https://github.com/iamvikshan).
+> If using codespaces, please review the project's
+> [devcontainer.json](.devcontainer/devcontainer.json) carefully, your
+> authorship may be automatically attributed to
+> [`vikshan`](https://github.com/iamvikshan).

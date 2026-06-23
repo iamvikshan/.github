@@ -1,20 +1,20 @@
-name: "Deploy Astro Site to GitHub Pages"
-description: "Build and deploy an Astro static site to GitHub Pages using Bun"
+name: 'Deploy Astro Site to GitHub Pages'
+description: 'Build and deploy an Astro static site to GitHub Pages using Bun'
 inputs:
   node-version:
-    description: "Node.js version to use"
+    description: 'Node.js version to use'
     required: false
-    default: "24"
+    default: '24'
   package-manager:
-    description: "Package manager to use (bun, npm, pnpm, yarn)"
+    description: 'Package manager to use (bun, npm, pnpm, yarn)'
     required: false
-    default: "bun@latest"
+    default: 'bun@latest'
   path:
-    description: "Root location of your Astro project"
+    description: 'Root location of your Astro project'
     required: false
-    default: "."
+    default: '.'
 runs:
-  using: "composite"
+  using: 'composite'
   steps:
     - name: Checkout repository
       uses: actions/checkout@v7.0.0

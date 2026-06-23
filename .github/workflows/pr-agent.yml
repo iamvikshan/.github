@@ -9,24 +9,26 @@ on:
     inputs:
       extra_config_url:
         type: string
-        default: "https://raw.githubusercontent.com/iamvikshan/.github/main/configs/.pr_agent.toml"
+        default: 'https://raw.githubusercontent.com/iamvikshan/.github/main/configs/.pr_agent.toml'
         required: false
     secrets:
-      GITHUB_TOKEN:
-        description: "GitHub token (or PAT) for PR-Agent to read PRs and write review comments."
-        required: false
       GEMINI_TOKEN:
-        description: "Gemini API key used by PR-Agent to generate AI reviews."
+        description: 'Gemini API key used by PR-Agent to generate AI reviews.'
         required: true
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.event.issue.number || github.run_id }}
+  group:
+    ${{ github.workflow }}-${{ github.event.pull_request.number ||
+    github.event.issue.number || github.run_id }}
   cancel-in-progress: true
 
 jobs:
   pr_agent_job:
     # Ensure the bot only runs on PRs/PR comments and does not trigger feedback loops
-    if: ${{ (github.event_name == 'pull_request' || github.event.issue.pull_request) && github.actor != 'github-actions[bot]' && !contains(github.actor, '[bot]') }}
+    if:
+      ${{ (github.event_name == 'pull_request' ||
+      github.event.issue.pull_request) && github.actor != 'github-actions[bot]'
+      && !contains(github.actor, '[bot]') }}
     runs-on: ubuntu-latest
     permissions:
       issues: write

@@ -1,6 +1,7 @@
 # Reusable GitHub Actions & Workflows
 
-This directory publishes reusable composite actions and reusable workflows. Use the references below to call them from other workflows/repositories.
+This directory publishes reusable composite actions and reusable workflows. Use
+the references below to call them from other workflows/repositories.
 
 ---
 
@@ -15,11 +16,11 @@ Builds and deploys an Astro static site to GitHub Pages using Bun.
 
 #### Inputs
 
-| Input | Description | Required | Default |
-| :--- | :--- | :---: | :--- |
-| `node-version` | Node.js version to use | No | `"24"` |
-| `package-manager` | Package manager to use (bun, npm, pnpm, yarn) | No | `"bun@latest"` |
-| `path` | Root location of your Astro project | No | `"."` |
+| Input             | Description                                   | Required | Default        |
+| :---------------- | :-------------------------------------------- | :------: | :------------- |
+| `node-version`    | Node.js version to use                        |    No    | `"24"`         |
+| `package-manager` | Package manager to use (bun, npm, pnpm, yarn) |    No    | `"bun@latest"` |
+| `path`            | Root location of your Astro project           |    No    | `"."`          |
 
 #### Usage Example
 
@@ -27,33 +28,37 @@ Builds and deploys an Astro static site to GitHub Pages using Bun.
 - name: Deploy Astro Site
   uses: iamvikshan/.github/.github/actions/astro@main
   with:
-    path: "./docs"
-    node-version: "20"
+    path: './docs'
+    node-version: '20'
 ```
 
 ---
 
 ### 2. Setup Bun & Install (`bun`)
 
-Sets up the latest version of Bun and installs package dependencies. It supports workspace escaping validation, relative path resolution, and single-directory/monorepo paths.
+Sets up the latest version of Bun and installs package dependencies. It supports
+workspace escaping validation, relative path resolution, and
+single-directory/monorepo paths.
 
 #### Inputs
 
-| Input | Description | Required | Default |
-| :--- | :--- | :---: | :--- |
-| `working-directory` | The directory to install dependencies in (if `install-paths` is empty) | No | `"."` |
-| `install-paths` | Newline-separated paths to install dependencies in (relative to the workspace root) | No | `""` |
-| `install-args` | Newline-separated Bun install arguments | No | `""` |
+| Input               | Description                                                                         | Required | Default |
+| :------------------ | :---------------------------------------------------------------------------------- | :------: | :------ |
+| `working-directory` | The directory to install dependencies in (if `install-paths` is empty)              |    No    | `"."`   |
+| `install-paths`     | Newline-separated paths to install dependencies in (relative to the workspace root) |    No    | `""`    |
+| `install-args`      | Newline-separated Bun install arguments                                             |    No    | `""`    |
 
 #### Usage Examples
 
 ##### Single-directory install (current directory)
+
 ```yaml
 - name: Install dependencies
   uses: iamvikshan/.github/.github/actions/bun@main
 ```
 
 ##### Single-directory install (custom folder)
+
 ```yaml
 - name: Install dependencies
   uses: iamvikshan/.github/.github/actions/bun@main
@@ -62,6 +67,7 @@ Sets up the latest version of Bun and installs package dependencies. It supports
 ```
 
 ##### Monorepo multi-path install with custom arguments
+
 ```yaml
 - name: Install all workspaces
   uses: iamvikshan/.github/.github/actions/bun@main
@@ -69,23 +75,24 @@ Sets up the latest version of Bun and installs package dependencies. It supports
     install-paths: |
       apps/web
       packages/ui
-    install-args: "--frozen-lockfile"
+    install-args: '--frozen-lockfile'
 ```
 
 ---
 
 ### 3. Setup Node.js, Bun & Install (`bun-node`)
 
-Sets up both Node.js and Bun environments, and then triggers package installation using the consolidated `bun` action internally.
+Sets up both Node.js and Bun environments, and then triggers package
+installation using the consolidated `bun` action internally.
 
 #### Inputs
 
-| Input | Description | Required | Default |
-| :--- | :--- | :---: | :--- |
-| `node-version` | Node.js version to set up | No | `"latest"` |
-| `working-directory` | The directory to install dependencies in (if `install-paths` is empty) | No | `"."` |
-| `install-paths` | Newline-separated paths to install dependencies in (relative to the workspace root) | No | `""` |
-| `install-args` | Newline-separated Bun install arguments | No | `""` |
+| Input               | Description                                                                         | Required | Default    |
+| :------------------ | :---------------------------------------------------------------------------------- | :------: | :--------- |
+| `node-version`      | Node.js version to set up                                                           |    No    | `"latest"` |
+| `working-directory` | The directory to install dependencies in (if `install-paths` is empty)              |    No    | `"."`      |
+| `install-paths`     | Newline-separated paths to install dependencies in (relative to the workspace root) |    No    | `""`       |
+| `install-args`      | Newline-separated Bun install arguments                                             |    No    | `""`       |
 
 #### Usage Example
 
@@ -93,26 +100,28 @@ Sets up both Node.js and Bun environments, and then triggers package installatio
 - name: Setup full JS/TS Environment
   uses: iamvikshan/.github/.github/actions/bun-node@main
   with:
-    node-version: "22"
-    working-directory: "apps/api"
+    node-version: '22'
+    working-directory: 'apps/api'
 ```
 
 ---
 
 ## Reusable GitHub Workflows
 
-This repository also publishes reusable workflows under `.github/workflows/`. These can be called directly by other workflows/repositories using the full reference path:
-`iamvikshan/.github/.github/workflows/{workflow-file}.yml@main`
+This repository also publishes reusable workflows under `.github/workflows/`.
+These can be called directly by other workflows/repositories using the full
+reference path: `iamvikshan/.github/.github/workflows/{workflow-file}.yml@main`
 
 ### 1. CLA Assistant (`cla.yml`)
 
-Integrates the Contributor License Agreement assistant to check and sign CLAs via PR comments.
+Integrates the Contributor License Agreement assistant to check and sign CLAs
+via PR comments.
 
 #### Secrets
 
-| Secret | Description | Required |
-| :--- | :--- | :---: |
-| `GITHUB_TOKEN` | GitHub token or PAT used to update status checks and store signatures in the repository/Gist. | No (defaults to repository context token) |
+| Secret  | Description                                                                                          |                  Required                  |
+| :------ | :--------------------------------------------------------------------------------------------------- | :----------------------------------------: |
+| `token` | Optional GitHub PAT used to write signatures when signatures destination is outside the caller repo. | No (defaults to caller GITHUB_TOKEN scope) |
 
 #### Caller Workflow Example
 
@@ -139,18 +148,20 @@ jobs:
 
 ### 2. PR Agent (`pr-agent.yml`)
 
-Runs PR-Agent reviews, suggestions, and chat interfaces on Pull Requests using Google Gemini. It automatically downloads and merges the centralized configuration from `configs/.pr_agent.toml` of this repository.
+Runs PR-Agent reviews, suggestions, and chat interfaces on Pull Requests using
+Google Gemini. It automatically downloads and merges the centralized
+configuration from `configs/.pr_agent.toml` of this repository.
 
 #### Secrets
 
-| Secret | Description | Required |
-| :--- | :--- | :---: |
-| `GITHUB_TOKEN` | GitHub token or PAT with repository write scope for review comments. | No (defaults to caller GITHUB_TOKEN) |
-| `GEMINI_TOKEN` | Gemini API Key used to communicate with Google AI Studio. | **Yes** |
+| Secret         | Description                                               | Required |
+| :------------- | :-------------------------------------------------------- | :------: |
+| `GEMINI_TOKEN` | Gemini API Key used to communicate with Google AI Studio. | **Yes**  |
 
 #### Caller Workflow Example
 
 ##### Explicit Secrets Mapping (Recommended for custom secret names)
+
 ```yaml
 name: Code Review
 
@@ -163,15 +174,16 @@ on:
 jobs:
   review:
     # Gating the job ensures Gemini API and secrets aren't exposed on non-PR comments
-    if: ${{ github.event_name == 'pull_request' || github.event.issue.pull_request }}
+    if:
+      ${{ github.event_name == 'pull_request' || github.event.issue.pull_request
+      }}
     uses: iamvikshan/.github/.github/workflows/pr-agent.yml@main
     permissions:
       contents: write
       pull-requests: write
       issues: write
     secrets:
-      GITHUB_TOKEN: ${{ secrets.GH_PAT }}       # Map custom PAT
-      GEMINI_TOKEN: ${{ secrets.GEMINI }}       # Map Gemini Token
+      GEMINI_TOKEN: ${{ secrets.GEMINI }} # Map Gemini Token
 ```
 
 ##### Seamless Inheritance
