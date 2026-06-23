@@ -176,18 +176,32 @@ else
   echo -e "✓ SSH signing key already exists."
 fi
 
-git config --global gpg.format ssh
-git config --global user.signingkey "${KEY_PATH}.pub"
-git config --global commit.gpgsign true
+# Purge injected configurations and wrappers across all levels
+git config --system --unset-all user.signingkey 2>/dev/null || true
+git config --global --unset-all user.signingkey 2>/dev/null || true
+git config --system --unset-all gpg.ssh.program 2>/dev/null || true
+git config --global --unset-all gpg.ssh.program 2>/dev/null || true
+
+if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  git config --local --unset-all user.signingkey 2>/dev/null || true
+  git config --local --unset-all gpg.ssh.program 2>/dev/null || true
+fi
+
+# Set global configuration with --replace-all for absolute certainty
+git config --global --replace-all gpg.format ssh
+git config --global --replace-all user.signingkey "${KEY_PATH}.pub"
+git config --global --replace-all commit.gpgsign true
 
 if [ ! -f "${KEY_PATH}.pub" ]; then
   echo -e "${RED}ERROR: Public key file ${KEY_PATH}.pub does not exist.${NC}" >&2
   exit 1
 fi
 
-# Safely overwrite Codespaces local GPG injection if inside a git tree
+# Enforce strictly at the local level to override any phantom environment variables
 if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-  git config --local user.signingkey "${KEY_PATH}.pub"
+  git config --local --replace-all gpg.format ssh
+  git config --local --replace-all user.signingkey "${KEY_PATH}.pub"
+  git config --local --replace-all commit.gpgsign true
 fi
 
 # --- Helper Functions for API Keys ---
@@ -223,6 +237,7 @@ prune_github_keys() {
 
   local key_count
   key_count=$(echo "$keys_json" | jq '. | length' 2>/dev/null || echo "0")
+  echo -e "  Found $key_count configured keys on GitHub."
 
   if [[ "$key_count" -gt "$MAX_SSH_KEYS" ]]; then
     local delete_count=$((key_count - MAX_SSH_KEYS))
@@ -251,6 +266,7 @@ prune_gitlab_keys() {
 
   local key_count
   key_count=$(echo "$keys_json" | jq '[.[] | select(.usage_type == "signing")] | length' 2>/dev/null || echo "0")
+  echo -e "  Found $key_count configured keys on GitLab."
 
   if [[ "$key_count" -gt "$MAX_SSH_KEYS" ]]; then
     local delete_count=$((key_count - MAX_SSH_KEYS))
@@ -330,23 +346,25 @@ git config --unset-all remote.origin.pushurl || true
 git remote set-url --add --push origin "$GH_REMOTE"
 echo -e "✓ GitHub push remote configured (${GH_OWNER}/${GH_REPO})."
 
-if [[ "$(lowercase "$GL_NAMESPACE")" != "skip" ]]; then
+# ONLY configure GitLab if GL_TOKEN exists AND wasnt't skipped
+if [[ -n "$GL_TOKEN" && "$(lowercase "$GL_NAMESPACE")" != "skip" ]]; then
   GL_URL="gitlab.com/${GL_NAMESPACE}/${GL_REPO}.git"
-  if [[ -n "$GL_TOKEN" ]]; then GL_REMOTE="https://oauth2:${GL_TOKEN}@${GL_URL}"
-  else GL_REMOTE="https://${GL_URL}"; fi
+  GL_REMOTE="https://oauth2:${GL_TOKEN}@${GL_URL}"
   
   git remote set-url --add --push origin "$GL_REMOTE"
   echo -e "✓ GitLab push remote configured (${GL_NAMESPACE}/${GL_REPO})."
   
-  if [[ -n "$GL_TOKEN" ]]; then enable_gitlab_force_push; fi
+  enable_gitlab_force_push
+else
+  echo -e "✓ Skipping GitLab remote configuration (No token provided or skipped)."
 fi
 
 # 8. Fetch and Apply Git Hooks
 echo -e "\n--- Git Hooks ---"
 TMP_DIR=$(mktemp -d)
 
-git clone --depth 1 --filter=blob:none --sparse https://github.com/iamvikshan/atlas.git "$TMP_DIR" -q
-git -C "$TMP_DIR" sparse-checkout set scripts/hooks > /dev/null 2>&1
+git clone --depth 1 --filter=blob:none --sparse https://github.com/iamvikshan/atlas.git "$TMP_DIR" -q &>/dev/null
+git -C "$TMP_DIR" sparse-checkout set scripts/hooks &>/dev/null
 
 mkdir -p scripts/hooks
 if [ -d "$TMP_DIR/scripts/hooks" ]; then
