@@ -1,24 +1,27 @@
-name: "Setup node-bun Environment"
-description: "Setup Node.js, Bun, and install dependencies"
+name: 'Setup node-bun Environment'
+description: 'Setup Node.js, Bun, and install dependencies'
 inputs:
   node-version:
-    description: "Node.js version to set up"
+    description: 'Node.js version to set up'
     required: false
-    default: "latest"
+    default: 'latest'
   working-directory:
-    description: "The directory to install dependencies in (if install-paths is empty)"
+    description:
+      'The directory to install dependencies in (if install-paths is empty)'
     required: false
-    default: "."
+    default: '.'
   install-paths:
-    description: "Newline-separated paths to install dependencies in, relative to the workspace root"
+    description:
+      'Newline-separated paths to install dependencies in, relative to the
+      workspace root'
     required: false
-    default: ""
+    default: ''
   install-args:
-    description: "Newline-separated Bun install arguments"
+    description: 'Newline-separated Bun install arguments'
     required: false
-    default: ""
+    default: ''
 runs:
-  using: "composite"
+  using: 'composite'
   steps:
     - name: Setup Node.js
       uses: actions/setup-node@v6.4.0
