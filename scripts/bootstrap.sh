@@ -346,7 +346,7 @@ git config --unset-all remote.origin.pushurl || true
 git remote set-url --add --push origin "$GH_REMOTE"
 echo -e "✓ GitHub push remote configured (${GH_OWNER}/${GH_REPO})."
 
-# ONLY configure GitLab if GL_TOKEN exists AND wasnt't skipped
+# ONLY configure GitLab if GL_TOKEN exists AND wasn't skipped
 if [[ -n "$GL_TOKEN" && "$(lowercase "$GL_NAMESPACE")" != "skip" ]]; then
   GL_URL="gitlab.com/${GL_NAMESPACE}/${GL_REPO}.git"
   GL_REMOTE="https://oauth2:${GL_TOKEN}@${GL_URL}"
