@@ -25,12 +25,12 @@ before using this software:
 
 ## Responsibly disclosing security bugs
 
-If you find a security bug in this repository, please work us following
+If you find a security bug in this repository, please work with us following
 responsible disclosure principles and these guidelines:
 
 - Do not submit a normal issue or pull request in our public repository, instead
-  report through our Bug Bounty or directly to foss@vikshan.me (If you would
-  like to encrypt, please see the end of these guidelines)
+  report directly to foss@vikshan.me (If you would like to encrypt, please see
+  the end of these guidelines)
 - We will review your submission and may follow up for additional details
 - If you have a patch, we will review it and approve it privately; once approved
   for release you can submit it as a pull request publicly in our repos (we give

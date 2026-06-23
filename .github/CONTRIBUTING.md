@@ -41,8 +41,8 @@ action you have taken to solve it.
 
 ### Does it follow the Code of Conduct
 
-Make sure that you follow the Code of Conduct, available
-[here](./CODE_OF_CONDUCT.md).
+Make sure that you follow the Code of Conduct, available in the
+[Code of Conduct](./CODE_OF_CONDUCT.md).
 
 ## Credits
 
@@ -53,5 +53,5 @@ These Contributing Guidelines are adapted from
 >
 > If using codespaces, please review the project's
 > [devcontainer.json](.devcontainer/devcontainer.json) carefully, your
-> authorship may be automatiacally attributed to
+> authorship may be automatically attributed to
 > [`vikshan`](https://github.com/iamvikshan).

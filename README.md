@@ -7,7 +7,7 @@
 
 # 🏥 Vikshan's `.github`
 
-This repository contains the common community health files that i (vikshan), use
+This repository contains the common community health files that I (vikshan), use
 for my projects. These policies are adopted across my repos:
 
 - [Code of Conduct](./.github/CODE_OF_CONDUCT.md)

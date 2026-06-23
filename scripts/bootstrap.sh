@@ -187,15 +187,15 @@ if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   git config --local --unset-all gpg.ssh.program 2>/dev/null || true
 fi
 
-# Set global configuration with --replace-all for absolute certainty
-git config --global --replace-all gpg.format ssh
-git config --global --replace-all user.signingkey "${KEY_PATH}.pub"
-git config --global --replace-all commit.gpgsign true
-
 if [ ! -f "${KEY_PATH}.pub" ]; then
   echo -e "${RED}ERROR: Public key file ${KEY_PATH}.pub does not exist.${NC}" >&2
   exit 1
 fi
+
+# Set global configuration with --replace-all for absolute certainty
+git config --global --replace-all gpg.format ssh
+git config --global --replace-all user.signingkey "${KEY_PATH}.pub"
+git config --global --replace-all commit.gpgsign true
 
 # Enforce strictly at the local level to override any phantom environment variables
 if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
@@ -363,7 +363,7 @@ fi
 echo -e "\n--- Git Hooks ---"
 TMP_DIR=$(mktemp -d)
 
-git clone --depth 1 --filter=blob:none --sparse https://github.com/iamvikshan/atlas.git "$TMP_DIR" -q &>/dev/null
+git clone --depth 1 --filter=blob:none --sparse https://github.com/iamvikshan/atlas.git "$TMP_DIR" -q
 git -C "$TMP_DIR" sparse-checkout set scripts/hooks &>/dev/null
 
 mkdir -p scripts/hooks
