@@ -153,12 +153,12 @@ Google Gemini.
 
 #### Secrets
 
-| Secret         | Description                                                            | Required |
-| :------------- | :--------------------------------------------------------------------- | :------: |
-| `GEMINI`       | Gemini API Key (preferred name) used to communicate with Google AI Studio. |   No*    |
-| `GEMINI_TOKEN` | Gemini API Key (fallback/legacy name) used by PR-Agent.                |   No*    |
+| Secret         | Description                                                                | Required |
+| :------------- | :------------------------------------------------------------------------- | :------: |
+| `GEMINI`       | Gemini API Key (preferred name) used to communicate with Google AI Studio. |   No\*   |
+| `GEMINI_TOKEN` | Gemini API Key (fallback/legacy name) used by PR-Agent.                    |   No\*   |
 
-\* *Note: At least one of `GEMINI` or `GEMINI_TOKEN` must be provided.*
+\* _Note: At least one of `GEMINI` or `GEMINI_TOKEN` must be provided._
 
 #### Caller Workflow Example
 
