@@ -13,6 +13,17 @@ on:
   issue_comment:
     types: [created]
   workflow_call:
+    inputs:
+      vertex_project:
+        type: string
+        default: 'amina-440220'
+        required: false
+        description: 'Google Cloud Project ID'
+      vertex_location:
+        type: string
+        default: 'global'
+        required: false
+        description: 'Vertex AI Region/Location'
     secrets:
       GCP_CREDENTIALS:
         required: true
@@ -41,6 +52,7 @@ jobs:
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+          create_credentials_file: false 
 
       # Step-2: Run PR Agent Action
       - name: PR Agent action step
@@ -48,7 +60,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Vertex AI Configs (passed to LiteLLM)
-          VERTEXAI_PROJECT: 'amina-440220'
-          VERTEXAI_LOCATION: 'global'
+          VERTEXAI_PROJECT: ${{ inputs.vertex_project || 'amina-440220' }}
+          VERTEXAI_LOCATION: ${{ inputs.vertex_location || 'global' }}
           # Tell PR-Agent where to find central config
           CONFIG__EXTRA_CONFIG_URL: 'https://raw.githubusercontent.com/iamvikshan/.github/main/configs/.pr_agent.toml'

@@ -7,9 +7,9 @@ num_code_suggestions = 5
 
 [github_action_config]
 # Toggles for automated behaviors on pull request actions
-auto_review = true
+auto_review = false
 auto_describe = false
-auto_improve = false
+auto_improve = true
 # Automated action triggers
 pr_actions = [
   "opened",

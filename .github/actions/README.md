@@ -148,8 +148,14 @@ jobs:
 
 ### 2. PR Agent (`pr-agent.yml`)
 
-Runs PR-Agent reviews, suggestions, and chat interfaces on Pull Requests using
-Google Cloud Vertex AI (Gemini 3.5 Flash).
+Runs PR-Agent reviews, suggestions, and chat interfaces on Pull Requests using Google Cloud Vertex AI (Gemini 3.5 Flash).
+
+#### Inputs
+
+| Input             | Description                            | Required | Default            |
+| :---------------- | :------------------------------------- | :------: | :----------------- |
+| `vertex_project`  | Google Cloud Project ID for Vertex AI. |    No    | `"amina-440220"`   |
+| `vertex_location` | Vertex AI region/location endpoint.    |    No    | `"global"`         |
 
 #### Secrets
 
@@ -158,6 +164,8 @@ Google Cloud Vertex AI (Gemini 3.5 Flash).
 | `GCP_CREDENTIALS` | Google Cloud Service Account JSON Key with the `Vertex AI User` role. |   Yes    |
 
 #### Caller Workflow Example
+
+##### 1. Using Defaults (Recommended)
 
 ```yaml
 name: Code Review
@@ -171,6 +179,31 @@ on:
 jobs:
   review:
     uses: iamvikshan/.github/.github/workflows/pr-agent.yml@main
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    secrets:
+      GCP_CREDENTIALS: ${{ secrets.GCP_SA_JSON_KEY }}
+```
+
+##### 2. Overriding GCP Project and Region
+
+```yaml
+name: Code Review
+
+on:
+  pull_request:
+    types: [opened, reopened, ready_for_review, review_requested, synchronize]
+  issue_comment:
+    types: [created]
+
+jobs:
+  review:
+    uses: iamvikshan/.github/.github/workflows/pr-agent.yml@main
+    with:
+      vertex_project: 'my-custom-gcp-project'
+      vertex_location: 'us-central1'
     permissions:
       contents: write
       pull-requests: write
