@@ -137,11 +137,8 @@ on:
 jobs:
   run-cla:
     uses: iamvikshan/.github/.github/workflows/cla.yml@main
-    secrets: inherit
-    permissions:
-      contents: write
-      pull-requests: write
-      statuses: write
+    secrets:
+      token: ${{ secrets.GH_TOKEN }}
 ```
 
 ---
