@@ -2,7 +2,14 @@ name: PR Agent (Gemini)
 
 on:
   pull_request:
-    types: ["opened", "reopened", "ready_for_review", "review_requested", "synchronize"]
+    types:
+      [
+        'opened',
+        'reopened',
+        'ready_for_review',
+        'review_requested',
+        'synchronize',
+      ]
   issue_comment:
     types: [created]
   workflow_call:
@@ -27,7 +34,6 @@ concurrency:
 
 jobs:
   pr_agent_job:
-
     if:
       ${{ (github.event_name == 'pull_request' ||
       github.event.issue.pull_request) && github.actor != 'github-actions[bot]'
@@ -43,6 +49,12 @@ jobs:
         uses: The-PR-Agent/pr-agent@v0.36.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GOOGLE_AI_STUDIO.GEMINI_API_KEY: ${{ (secrets.GEMINI || secrets.GEMINI_TOKEN) }}
-          PR_AGENT_EXTRA_CONFIG_URL: ${{ inputs.extra_config_url }}
-          github_action_config.pr_actions: '["opened", "reopened", "ready_for_review", "review_requested", "synchronize"]'
+          GOOGLE_AI_STUDIO.GEMINI_API_KEY:
+            ${{ (secrets.GEMINI || secrets.GEMINI_TOKEN) }}
+          PR_AGENT_EXTRA_CONFIG_URL:
+            ${{ inputs.extra_config_url ||
+            'https://raw.githubusercontent.com/iamvikshan/.github/main/configs/.pr_agent.toml'
+            }}
+          github_action_config.pr_actions:
+            '["opened", "reopened", "ready_for_review", "review_requested",
+            "synchronize"]'
