@@ -40,5 +40,5 @@ jobs:
         uses: The-PR-Agent/pr-agent@v0.36.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GOOGLE_AI_STUDIO.GEMINI_API_KEY: ${{ secrets.GEMINI }}
+          GOOGLE_AI_STUDIO.GEMINI_API_KEY: ${{ (secrets.GEMINI || secrets.GEMINI_TOKEN) }}
           PR_AGENT_EXTRA_CONFIG_URL: ${{ inputs.extra_config_url }}
