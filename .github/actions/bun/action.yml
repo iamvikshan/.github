@@ -57,6 +57,7 @@ runs:
         }
 
         workspace_root="$(realpath_m "$GITHUB_WORKSPACE")"
+        actions_root="$(realpath_m "$workspace_root/../../_actions")"
         install_paths=()
         install_args=()
 
@@ -94,7 +95,7 @@ runs:
           fi
 
           case "$resolved_path" in
-            "$workspace_root"|"$workspace_root"/*) ;;
+            "$workspace_root"|"$workspace_root"/*|"$actions_root"|"$actions_root"/*) ;;
             *)
               echo "Install path escapes workspace: $install_path" >&2
               exit 1
