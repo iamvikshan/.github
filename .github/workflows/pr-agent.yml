@@ -12,9 +12,12 @@ on:
         default: 'https://raw.githubusercontent.com/iamvikshan/.github/main/configs/.pr_agent.toml'
         required: false
     secrets:
+      GEMINI:
+        description: 'Preferred Gemini API key used by PR-Agent.'
+        required: false
       GEMINI_TOKEN:
-        description: 'Gemini API key used by PR-Agent to generate AI reviews.'
-        required: true
+        description: 'Alternative/fallback Gemini API key.'
+        required: false
 
 concurrency:
   group:
@@ -42,3 +45,4 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GOOGLE_AI_STUDIO.GEMINI_API_KEY: ${{ (secrets.GEMINI || secrets.GEMINI_TOKEN) }}
           PR_AGENT_EXTRA_CONFIG_URL: ${{ inputs.extra_config_url }}
+          github_action_config.pr_actions: '["opened", "reopened", "ready_for_review", "review_requested", "synchronize"]'
