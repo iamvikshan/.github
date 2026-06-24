@@ -149,8 +149,7 @@ jobs:
 ### 2. PR Agent (`pr-agent.yml`)
 
 Runs PR-Agent reviews, suggestions, and chat interfaces on Pull Requests using
-Google Gemini. It automatically downloads and merges the centralized
-configuration from `configs/.pr_agent.toml` of this repository.
+Google Gemini.
 
 #### Secrets
 
@@ -183,7 +182,7 @@ jobs:
       pull-requests: write
       issues: write
     secrets:
-      GEMINI_TOKEN: ${{ secrets.GEMINI }} # Map Gemini Token
+      GEMINI_TOKEN: ${{ secrets.GEMINI }}
 ```
 
 ##### Seamless Inheritance
