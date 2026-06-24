@@ -35,7 +35,7 @@ jobs:
           'workflow_call'
         uses: contributor-assistant/github-action@v2.6.1
         env:
-          GITHUB_TOKEN: ${{ secrets.token || secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.token || secrets.GH_TOKEN || secrets.GITHUB_TOKEN }}
         with:
           path-to-signatures: 'signatures/cla.json'
           path-to-document:
