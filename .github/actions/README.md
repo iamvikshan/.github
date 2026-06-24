@@ -149,45 +149,66 @@ jobs:
 ### 2. PR Agent (`pr-agent.yml`)
 
 Runs PR-Agent reviews, suggestions, and chat interfaces on Pull Requests using
-Google Gemini. It automatically downloads and merges the centralized
-configuration from `configs/.pr_agent.toml` of this repository.
+Google Cloud Vertex AI (Gemini 3.5 Flash).
+
+#### Inputs
+
+| Input             | Description                            | Required | Default          |
+| :---------------- | :------------------------------------- | :------: | :--------------- |
+| `vertex_project`  | Google Cloud Project ID for Vertex AI. |    No    | `"amina-440220"` |
+| `vertex_location` | Vertex AI region/location endpoint.    |    No    | `"global"`       |
 
 #### Secrets
 
-| Secret         | Description                                               | Required |
-| :------------- | :-------------------------------------------------------- | :------: |
-| `GEMINI_TOKEN` | Gemini API Key used to communicate with Google AI Studio. | **Yes**  |
+| Secret            | Description                                                           | Required |
+| :---------------- | :-------------------------------------------------------------------- | :------: |
+| `GCP_CREDENTIALS` | Google Cloud Service Account JSON Key with the `Vertex AI User` role. |   Yes    |
 
 #### Caller Workflow Example
 
-##### Explicit Secrets Mapping (Recommended for custom secret names)
+##### 1. Using Defaults (Recommended)
 
 ```yaml
 name: Code Review
 
 on:
   pull_request:
-    types: [opened, reopened, ready_for_review, synchronize]
+    types: [opened, reopened, ready_for_review, review_requested, synchronize]
   issue_comment:
     types: [created]
 
 jobs:
   review:
-    # Gating the job ensures Gemini API and secrets aren't exposed on non-PR comments
-    if:
-      ${{ github.event_name == 'pull_request' || github.event.issue.pull_request
-      }}
     uses: iamvikshan/.github/.github/workflows/pr-agent.yml@main
     permissions:
       contents: write
       pull-requests: write
       issues: write
     secrets:
-      GEMINI_TOKEN: ${{ secrets.GEMINI }} # Map Gemini Token
+      GCP_CREDENTIALS: ${{ secrets.GCP_SA_JSON_KEY }}
 ```
 
-##### Seamless Inheritance
+##### 2. Overriding GCP Project and Region
 
 ```yaml
-    secrets: inherit
+name: Code Review
+
+on:
+  pull_request:
+    types: [opened, reopened, ready_for_review, review_requested, synchronize]
+  issue_comment:
+    types: [created]
+
+jobs:
+  review:
+    uses: iamvikshan/.github/.github/workflows/pr-agent.yml@main
+    with:
+      vertex_project: 'my-custom-gcp-project'
+      vertex_location: 'us-central1'
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    secrets:
+      GCP_CREDENTIALS: ${{ secrets.GCP_SA_JSON_KEY }}
 ```
