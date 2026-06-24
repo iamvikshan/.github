@@ -148,14 +148,15 @@ jobs:
 
 ### 2. PR Agent (`pr-agent.yml`)
 
-Runs PR-Agent reviews, suggestions, and chat interfaces on Pull Requests using Google Cloud Vertex AI (Gemini 3.5 Flash).
+Runs PR-Agent reviews, suggestions, and chat interfaces on Pull Requests using
+Google Cloud Vertex AI (Gemini 3.5 Flash).
 
 #### Inputs
 
-| Input             | Description                            | Required | Default            |
-| :---------------- | :------------------------------------- | :------: | :----------------- |
-| `vertex_project`  | Google Cloud Project ID for Vertex AI. |    No    | `"amina-440220"`   |
-| `vertex_location` | Vertex AI region/location endpoint.    |    No    | `"global"`         |
+| Input             | Description                            | Required | Default          |
+| :---------------- | :------------------------------------- | :------: | :--------------- |
+| `vertex_project`  | Google Cloud Project ID for Vertex AI. |    No    | `"amina-440220"` |
+| `vertex_location` | Vertex AI region/location endpoint.    |    No    | `"global"`       |
 
 #### Secrets
 

@@ -52,7 +52,7 @@ jobs:
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCP_CREDENTIALS }}
-          create_credentials_file: false 
+          create_credentials_file: false
 
       # Step-2: Run PR Agent Action
       - name: PR Agent action step
