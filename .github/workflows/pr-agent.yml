@@ -1,4 +1,4 @@
-name: PR Agent (Gemini)
+name: PR Agent (Vertex AI)
 
 on:
   pull_request:
@@ -13,18 +13,10 @@ on:
   issue_comment:
     types: [created]
   workflow_call:
-    inputs:
-      extra_config_url:
-        type: string
-        default: 'https://raw.githubusercontent.com/iamvikshan/.github/main/configs/.pr_agent.toml'
-        required: false
     secrets:
-      GEMINI:
-        description: 'Preferred Gemini API key used by PR-Agent.'
-        required: false
-      GEMINI_TOKEN:
-        description: 'Alternative/fallback Gemini API key.'
-        required: false
+      GCP_CREDENTIALS:
+        required: true
+        description: 'Google Cloud Service Account JSON Key'
 
 concurrency:
   group:
@@ -38,25 +30,25 @@ jobs:
       ${{ (github.event_name == 'pull_request' ||
       github.event.issue.pull_request) && github.actor != 'github-actions[bot]'
       && !contains(github.actor, '[bot]') }}
-
     runs-on: ubuntu-latest
     permissions:
       issues: write
       pull-requests: write
       contents: write
     steps:
+      # Step 1: Authenticate to Google Cloud using Service Account JSON Key
+      - name: Authenticate to Google Cloud (Vertex AI)
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+
+      # Step-2: Run PR Agent Action
       - name: PR Agent action step
         uses: The-PR-Agent/pr-agent@v0.36.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GOOGLE_AI_STUDIO__GEMINI_API_KEY:
-            ${{ (secrets.GEMINI || secrets.GEMINI_TOKEN) }}
-          GEMINI_API_KEY:
-            ${{ (secrets.GEMINI || secrets.GEMINI_TOKEN) }}
-          CONFIG__EXTRA_CONFIG_URL:
-            ${{ inputs.extra_config_url ||
-            'https://raw.githubusercontent.com/iamvikshan/.github/main/configs/.pr_agent.toml'
-            }}
-          GITHUB_ACTION_CONFIG__PR_ACTIONS:
-            '["opened", "reopened", "ready_for_review", "review_requested",
-            "synchronize"]'
+          # Vertex AI Configs (passed to LiteLLM)
+          VERTEXAI_PROJECT: 'amina-440220'
+          VERTEXAI_LOCATION: 'global'
+          # Tell PR-Agent where to find central config
+          CONFIG__EXTRA_CONFIG_URL: 'https://raw.githubusercontent.com/iamvikshan/.github/main/configs/.pr_agent.toml'

@@ -149,47 +149,32 @@ jobs:
 ### 2. PR Agent (`pr-agent.yml`)
 
 Runs PR-Agent reviews, suggestions, and chat interfaces on Pull Requests using
-Google Gemini.
+Google Cloud Vertex AI (Gemini 3.5 Flash).
 
 #### Secrets
 
-| Secret         | Description                                                                | Required |
-| :------------- | :------------------------------------------------------------------------- | :------: |
-| `GEMINI`       | Gemini API Key (preferred name) used to communicate with Google AI Studio. |   No\*   |
-| `GEMINI_TOKEN` | Gemini API Key (fallback/legacy name) used by PR-Agent.                    |   No\*   |
-
-\* _Note: At least one of `GEMINI` or `GEMINI_TOKEN` must be provided._
+| Secret            | Description                                                           | Required |
+| :---------------- | :-------------------------------------------------------------------- | :------: |
+| `GCP_CREDENTIALS` | Google Cloud Service Account JSON Key with the `Vertex AI User` role. |   Yes    |
 
 #### Caller Workflow Example
-
-##### Explicit Secrets Mapping (Recommended for custom secret names)
 
 ```yaml
 name: Code Review
 
 on:
   pull_request:
-    types: [opened, reopened, ready_for_review, synchronize]
+    types: [opened, reopened, ready_for_review, review_requested, synchronize]
   issue_comment:
     types: [created]
 
 jobs:
   review:
-    # Gating the job ensures Gemini API and secrets aren't exposed on non-PR comments
-    if:
-      ${{ github.event_name == 'pull_request' || github.event.issue.pull_request
-      }}
     uses: iamvikshan/.github/.github/workflows/pr-agent.yml@main
     permissions:
       contents: write
       pull-requests: write
       issues: write
     secrets:
-      GEMINI_TOKEN: ${{ secrets.GEMINI }}
-```
-
-##### Seamless Inheritance
-
-```yaml
-    secrets: inherit
+      GCP_CREDENTIALS: ${{ secrets.GCP_SA_JSON_KEY }}
 ```
