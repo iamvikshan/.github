@@ -2,7 +2,7 @@ name: PR Agent (Gemini)
 
 on:
   pull_request:
-    types: ["opened", "reopened", "ready_for_review", "review_requested", synchronize]
+    types: ["opened", "reopened", "ready_for_review", "review_requested", "synchronize"]
   issue_comment:
     types: [created]
   workflow_call:
