@@ -195,12 +195,14 @@ fi
 # Set global configuration with --replace-all for absolute certainty
 git config --global --replace-all gpg.format ssh
 git config --global --replace-all user.signingkey "${KEY_PATH}.pub"
+git config --global --replace-all gpg.ssh.program ssh-keygen
 git config --global --replace-all commit.gpgsign true
 
 # Enforce strictly at the local level to override any phantom environment variables
 if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   git config --local --replace-all gpg.format ssh
   git config --local --replace-all user.signingkey "${KEY_PATH}.pub"
+  git config --local --replace-all gpg.ssh.program ssh-keygen
   git config --local --replace-all commit.gpgsign true
 fi
 
