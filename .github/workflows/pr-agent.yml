@@ -56,7 +56,7 @@ jobs:
 
       # Step-2: Run PR Agent Action
       - name: PR Agent action step
-        uses: The-PR-Agent/pr-agent@v0.37.0
+        uses: The-PR-Agent/pr-agent@v0.38.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Vertex AI Configs (passed to LiteLLM)
