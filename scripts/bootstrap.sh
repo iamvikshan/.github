@@ -365,7 +365,7 @@ fi
 echo -e "\n--- Git Hooks ---"
 TMP_DIR=$(mktemp -d)
 
-git clone --depth 1 --filter=blob:none --sparse https://github.com/iamvikshan/atlas.git "$TMP_DIR" -q
+git clone --depth 1 --filter=blob:none --sparse https://github.com/iamvikshan/atlas.git "$TMP_DIR" -q &>/dev/null
 git -C "$TMP_DIR" sparse-checkout set scripts/hooks &>/dev/null
 
 mkdir -p scripts/hooks
@@ -375,6 +375,26 @@ if [ -d "$TMP_DIR/scripts/hooks" ]; then
   echo -e "✓ Hooks successfully installed."
 fi
 
+# Ensure husky hooks are set up
+mkdir -p .husky
+if [ ! -f ".husky/pre-commit" ]; then
+  cat > .husky/pre-commit << 'EOF'
+#!/usr/bin/env sh
+set -e
+
+# 1. Enforce global identity (instant execution)
+ ./.husky/identity-guard.sh
+
+# 2. Run staged formatting and linting
+echo "Running OXC checks..."
+bunx lint-staged
+EOF
+  chmod +x .husky/pre-commit 2>/dev/null || true
+  echo -e "✓ Created .husky/pre-commit hook."
+else
+  echo -e "✓ .husky/pre-commit hook already exists."
+fi
+
 # 9. Local Identity Guard Setup
 echo -e "\n--- Local Identity Guard ---"
 if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
@@ -382,10 +402,16 @@ if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   git config --local atlas.expected-email "$GIT_AUTHOR_EMAIL"
 fi
 
-mkdir -p .husky/_
-curl -sL https://raw.githubusercontent.com/iamvikshan/.github/main/scripts/husky/identity-guard.sh > .husky/_/identity-guard.sh 2>/dev/null || true
-chmod +x .husky/_/identity-guard.sh 2>/dev/null || true
-echo -e "✓ Identity guard payload installed."
+mkdir -p .husky
+if [ -f "scripts/husky/identity-guard.sh" ]; then
+  cp scripts/husky/identity-guard.sh .husky/identity-guard.sh 2>/dev/null || true
+  chmod +x .husky/identity-guard.sh 2>/dev/null || true
+  echo -e "✓ Identity guard payload installed from local scripts."
+else
+  curl -sL https://raw.githubusercontent.com/iamvikshan/.github/main/scripts/husky/identity-guard.sh > .husky/identity-guard.sh 2>/dev/null || true
+  chmod +x .husky/identity-guard.sh 2>/dev/null || true
+  echo -e "✓ Identity guard payload fetched and installed."
+fi
 
 # 10. Final Summary
 echo -e "\n${GREEN}==========================================${NC}"

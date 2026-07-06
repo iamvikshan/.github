@@ -1,52 +1,5 @@
 {
-  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:recommended", ":semanticCommits"],
-  "semanticCommitType": "chore",
-  "baseBranchPatterns": ["main"],
-  "automerge": false,
-  "prConcurrentLimit": 10,
-  "prHourlyLimit": 5,
-  "labels": ["dependencies"],
-  "assignees": ["iamvikshan"],
-  "schedule": ["before 4am every weekday"],
-  "timezone": "Africa/Nairobi",
-  "dependencyDashboard": true,
-  "dependencyDashboardApproval": false,
-  "rebaseWhen": "conflicted",
-  "rangeStrategy": "bump",
-  "separateMinorPatch": true,
-  "separateMajorMinor": true,
-  "pinDigests": false,
-  "packageRules": [
-    {
-      "description": "Automerge patch updates (safe bug fixes)",
-      "matchUpdateTypes": ["patch"],
-      "automerge": true,
-      "minimumReleaseAge": "1 day"
-    },
-    {
-      "description": "Require approval for major updates",
-      "matchUpdateTypes": ["major"],
-      "automerge": false,
-      "minimumReleaseAge": "5 days",
-      "labels": ["dependencies", "major-update"]
-    },
-    {
-      "description": "Automerge GitHub Actions (safe, doesn't affect code)",
-      "matchManagers": ["github-actions"],
-      "automerge": true,
-      "minimumReleaseAge": "3 days"
-    }
-  ],
-  "lockFileMaintenance": {
-    "enabled": true,
-    "minimumReleaseAge": "0 days",
-    "automerge": true,
-    "schedule": ["before 4am on monday"]
-  },
-  "vulnerabilityAlerts": {
-    "labels": ["security"],
-    "minimumReleaseAge": "0 days",
-    "automerge": true
-  }
+  "extends": [
+    "github>iamvikshan/.github//renovate/base"
+  ]
 }

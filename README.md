@@ -18,5 +18,5 @@ for my projects. These policies are adopted across my repos:
 
 Other files included in this repository are:
 
-- [cla.json](./signatures/cla.json) contains the list of users who
-  have signed my CLA
+- [cla.json](./signatures/cla.json) contains the list of users who have signed
+  my CLA
