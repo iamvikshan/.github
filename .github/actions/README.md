@@ -117,13 +117,27 @@ reference path: `iamvikshan/.github/.github/workflows/{workflow-file}.yml@main`
 Integrates the Contributor License Agreement assistant to check and sign CLAs
 via PR comments.
 
+#### Inputs
+
+| Input                      | Description                                            | Required | Default                                                       |
+| :------------------------- | :----------------------------------------------------- | :------: | :------------------------------------------------------------ |
+| `path-to-document`         | Path or full URL to the CLA document.                  |    No    | `https://github.com/{owner}/.github/blob/main/.github/CLA.md` |
+| `remote-organization-name` | Remote organization/owner where signatures are stored. |    No    | `"iamvikshan"`                                                |
+| `remote-repository-name`   | Remote repository name where signatures are stored.    |    No    | `".github"`                                                   |
+
 #### Secrets
 
-| Secret  | Description                                                                                          |                  Required                  |
-| :------ | :--------------------------------------------------------------------------------------------------- | :----------------------------------------: |
-| `token` | Optional GitHub PAT used to write signatures when signatures destination is outside the caller repo. | No (defaults to caller GITHUB_TOKEN scope) |
+| Secret  | Description                                                                        |        Required        |
+| :------ | :--------------------------------------------------------------------------------- | :--------------------: |
+| `token` | GitHub Personal Access Token (PAT) with write access to the signatures repository. | Yes (to save remotely) |
 
 #### Caller Workflow Example
+
+##### 1. Saving Signatures to the Central Repository (Default)
+
+By default, signatures will be written to
+`iamvikshan/.github/signatures/cla.json` (requires a valid `GH_TOKEN` secret
+with write permissions to `.github` passed in the `token` parameter):
 
 ```yaml
 name: CLA Check
@@ -139,6 +153,30 @@ jobs:
     uses: iamvikshan/.github/.github/workflows/cla.yml@main
     secrets:
       token: ${{ secrets.GH_TOKEN }}
+```
+
+##### 2. Saving Signatures Locally to the Caller Repository
+
+To store signatures inside the caller repository itself (no remote writes),
+override the inputs with empty strings:
+
+```yaml
+name: CLA Check
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request_target:
+    types: [opened, closed, synchronize]
+
+jobs:
+  run-cla:
+    uses: iamvikshan/.github/.github/workflows/cla.yml@main
+    with:
+      remote-organization-name: ''
+      remote-repository-name: ''
+    secrets:
+      token: ${{ secrets.GITHUB_TOKEN }}
 ```
 
 ---

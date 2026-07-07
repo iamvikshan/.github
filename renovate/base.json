@@ -1,19 +1,24 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "description": "Base Renovate configuration for all iamvikshan repositories.",
-  "extends": [
-    "config:recommended"
-  ],
+  "extends": ["config:recommended"],
   "prConcurrentLimit": 0,
   "prHourlyLimit": 0,
   "pinDigests": false,
+  "labels": ["dependencies"],
+  "assignees": ["iamvikshan"],
   "semanticCommits": "enabled",
   "semanticCommitType": "chore",
   "dependencyDashboard": true,
+  "schedule": ["before 4am every weekday"],
+  "timezone": "Africa/Nairobi",
+  "rebaseWhen": "conflicted",
+  "rangeStrategy": "bump",
+  "separateMinorPatch": true,
+  "separateMajorMinor": true,
   "lockFileMaintenance": {
     "enabled": true,
-    "automerge": true,
-    "schedule": ["at any time"]
+    "automerge": true
   },
   "packageRules": [
     {
@@ -96,5 +101,9 @@
       "matchManagers": ["pub"],
       "groupName": "pub-dependencies"
     }
-  ]
+  ],
+  "vulnerabilityAlerts": {
+    "labels": ["security"],
+    "automerge": true
+  }
 }

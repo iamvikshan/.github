@@ -10,6 +10,17 @@ on:
       path-to-document:
         type: string
         required: false
+      remote-organization-name:
+        type: string
+        required: false
+        default: 'iamvikshan'
+        description:
+          'Remote organization/owner name where signatures are stored'
+      remote-repository-name:
+        type: string
+        required: false
+        default: '.github'
+        description: 'Remote repository name where signatures are stored'
     secrets:
       token:
         description:
@@ -37,6 +48,7 @@ jobs:
         env:
           GITHUB_TOKEN:
             ${{ secrets.token || secrets.GH_TOKEN || secrets.GITHUB_TOKEN }}
+          PERSONAL_ACCESS_TOKEN: ${{ secrets.token || secrets.GH_TOKEN || '' }}
         with:
           path-to-signatures: 'signatures/cla.json'
           path-to-document:
@@ -46,9 +58,9 @@ jobs:
           branch: 'main'
           allowlist: dependabot-preview[bot], dependabot[bot], *bot, bot*
           create-file-commit-message:
-            ':wrench: Creating a file for storing CLA signatures'
+            'chore: create file for storing CLA signatures'
           signed-commit-message:
-            ':wrench: @$contributorName has signed the CLA in #$pullRequestNo'
+            'chore: @$contributorName has signed the CLA in #$pullRequestNo'
           custom-notsigned-prcomment:
             'Thanks for your submission! We ask that $you sign our [Contributor
             License Agreement](https://github.com/${{ github.repository_owner
@@ -56,3 +68,5 @@ jobs:
             contribution. You can sign the CLA by adding a comment below using
             this text:'
           custom-allsigned-prcomment: '✍️ All contributors have signed the CLA'
+          remote-organization-name: ${{ inputs.remote-organization-name }}
+          remote-repository-name: ${{ inputs.remote-repository-name }}
