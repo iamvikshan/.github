@@ -1,7 +1,8 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "description": "Base Renovate configuration for all iamvikshan repositories.",
-  "extends": ["config:recommended"],
+  "extends": ["config:recommended", ":semanticCommits"],
+  "baseBranches": ["main"],
   "automerge": true,
   "minimumReleaseAge": "0 days",
   "prConcurrentLimit": 0,
@@ -22,14 +23,14 @@
     "enabled": true
   },
   
-  "packageRules": [
+"packageRules": [
     {
       "description": "Production dependencies get a 3-day minimum release age",
       "matchDepTypes": ["dependencies"],
       "minimumReleaseAge": "3 days"
     },
     {
-      "description": "Disable automerge for major updates of production dependencies, use fix commit, and group them",
+      "description": "Disable automerge for major updates of production dependencies",
       "matchDepTypes": ["dependencies"],
       "matchUpdateTypes": ["major"],
       "automerge": false,
@@ -39,7 +40,7 @@
     {
       "description": "Group production dependencies minor/patch updates",
       "matchDepTypes": ["dependencies"],
-      "matchUpdateTypes": ["minor", "patch"],
+      "matchUpdateTypes": ["minor", "patch", "digest"],
       "groupName": "production-dependencies-minor-patch"
     },
     {
@@ -51,9 +52,28 @@
       "description": "Group GitHub Actions updates",
       "matchManagers": ["github-actions"],
       "groupName": "github-actions"
+    },
+    {
+      "description": "Group semantic-release ecosystem",
+      "matchPackagePatterns": ["^@semantic-release/", "^semantic-release", "^conventional-changelog"],
+      "groupName": "semantic-release ecosystem"
+    },
+    {
+      "groupName": "linters and formatters",
+      "matchPackageNames": [
+        "husky",
+        "oxlint",
+        "oxlint-tsgolint",
+        "oxfmt",
+        "lint-staged"
+      ],
+      "matchPackagePatterns": [
+        "^oxlint",
+        "^oxfmt",
+        "eslint"
+      ]
     }
-  ],
-  
+  ],  
   "vulnerabilityAlerts": {
     "labels": ["security"]
   }

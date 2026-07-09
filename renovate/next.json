@@ -1,0 +1,44 @@
+{
+  "extends": ["github>iamvikshan/.github//renovate/typescript"],
+  "packageRules": [
+    {
+      "groupName": "React ecosystem",
+      "matchPackageNames": ["react", "react-dom", "react-is"],
+      "matchPackagePatterns": ["^react-", "^@tanstack/react-", "^@marsidev/react-"],
+      "labels": ["dependencies", "react"]
+    },
+    {
+      "groupName": "Next.js ecosystem",
+      "matchPackageNames": ["next"],
+      "matchPackagePatterns": ["^next-", "^@vercel/", "^@teispace/next-"],
+      "labels": ["dependencies", "nextjs"]
+    },
+    {
+      "groupName": "Supabase ecosystem",
+      "matchPackageNames": ["supabase"],
+      "matchPackagePatterns": ["^@supabase/"],
+      "labels": ["dependencies", "supabase"]
+    },
+    {
+      "groupName": "Upstash ecosystem",
+      "matchPackagePatterns": ["^@upstash/"],
+      "labels": ["dependencies", "redis"]
+    },
+    {
+      "groupName": "Tailwind CSS ecosystem",
+      "matchPackageNames": ["tailwindcss"],
+      "matchPackagePatterns": ["^@tailwindcss/"],
+      "labels": ["dependencies", "tailwind"]
+    },
+    {
+      "description": "Group UI components and animation libraries",
+      "groupName": "UI and Animations",
+      "matchPackageNames": ["motion", "recharts", "cmdk", "zustand"]
+    },
+    {
+      "description": "Group DOM and React testing utilities",
+      "matchPackagePatterns": ["^@testing-library/", "^@happy-dom/"],
+      "groupName": "testing ecosystem"
+    }
+  ]
+}

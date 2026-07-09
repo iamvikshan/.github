@@ -2,19 +2,13 @@
   "extends": ["github>iamvikshan/.github//renovate/base"],
   "packageRules": [
     {
-      "groupName": "linters and formatters",
-      "matchPackageNames": [
-        "husky",
-        "oxlint",
-        "oxlint-tsgolint",
-        "oxfmt",
-        "/^oxlint/",
-        "/^oxfmt/"
-      ]
-    },
-    {
       "groupName": "TypeScript and types",
       "matchPackageNames": ["typescript", "/^@types/"]
+    },
+    {
+      "description": "Group data validation libraries",
+      "matchPackagePatterns": ["zod"],
+      "groupName": "zod ecosystem"
     }
   ]
 }
