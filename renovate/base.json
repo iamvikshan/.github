@@ -2,6 +2,8 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "description": "Base Renovate configuration for all iamvikshan repositories.",
   "extends": ["config:recommended"],
+  "automerge": true,
+  "minimumReleaseAge": "0 days",
   "prConcurrentLimit": 0,
   "prHourlyLimit": 0,
   "pinDigests": false,
@@ -17,57 +19,28 @@
   "separateMinorPatch": true,
   "separateMajorMinor": true,
   "lockFileMaintenance": {
-    "enabled": true,
-    "automerge": true
+    "enabled": true
   },
+  
   "packageRules": [
     {
-      "description": "Default minimum release age for non-production dependencies is 0 days",
-      "matchPackagePatterns": ["*"],
-      "minimumReleaseAge": "0 days"
-    },
-    {
-      "description": "Production dependencies (dependencies) get a 3-day minimum release age",
+      "description": "Production dependencies get a 3-day minimum release age",
       "matchDepTypes": ["dependencies"],
       "minimumReleaseAge": "3 days"
     },
     {
-      "description": "Automerge minor and patch updates for all dependency types",
-      "matchUpdateTypes": ["minor", "patch"],
-      "automerge": true
-    },
-    {
-      "description": "Automerge all updates for devDependencies at any time",
-      "matchDepTypes": ["devDependencies"],
-      "automerge": true
-    },
-    {
-      "description": "Automerge all updates for GitHub Actions at any time",
-      "matchManagers": ["github-actions"],
-      "automerge": true
-    },
-    {
-      "description": "Disable automerge for major updates of production dependencies",
+      "description": "Disable automerge for major updates of production dependencies, use fix commit, and group them",
       "matchDepTypes": ["dependencies"],
       "matchUpdateTypes": ["major"],
-      "automerge": false
+      "automerge": false,
+      "semanticCommitType": "fix",
+      "groupName": "production-dependencies-major"
     },
     {
-      "description": "Use fix: commit type for major updates of production dependencies",
-      "matchDepTypes": ["dependencies"],
-      "matchUpdateTypes": ["major"],
-      "semanticCommitType": "fix"
-    },
-    {
-      "description": "Ensure commit type is chore: for minor/patch updates of production dependencies",
+      "description": "Group production dependencies minor/patch updates",
       "matchDepTypes": ["dependencies"],
       "matchUpdateTypes": ["minor", "patch"],
-      "semanticCommitType": "chore"
-    },
-    {
-      "description": "Do not pin digests for GitHub Actions",
-      "matchManagers": ["github-actions"],
-      "pinDigests": false
+      "groupName": "production-dependencies-minor-patch"
     },
     {
       "description": "Group development dependencies",
@@ -78,32 +51,10 @@
       "description": "Group GitHub Actions updates",
       "matchManagers": ["github-actions"],
       "groupName": "github-actions"
-    },
-    {
-      "description": "Group production dependencies minor/patch updates",
-      "matchDepTypes": ["dependencies"],
-      "matchUpdateTypes": ["minor", "patch"],
-      "groupName": "production-dependencies-minor-patch"
-    },
-    {
-      "description": "Group production dependencies major updates",
-      "matchDepTypes": ["dependencies"],
-      "matchUpdateTypes": ["major"],
-      "groupName": "production-dependencies-major"
-    },
-    {
-      "description": "Group Docker updates",
-      "matchManagers": ["dockerfile", "docker-compose"],
-      "groupName": "docker-dependencies"
-    },
-    {
-      "description": "Group Pub (Dart/Flutter) updates",
-      "matchManagers": ["pub"],
-      "groupName": "pub-dependencies"
     }
   ],
+  
   "vulnerabilityAlerts": {
-    "labels": ["security"],
-    "automerge": true
+    "labels": ["security"]
   }
 }

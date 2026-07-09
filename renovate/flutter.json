@@ -1,0 +1,10 @@
+{
+  "extends": ["github>iamvikshan/.github//renovate/base"],
+  "packageRules": [
+    {
+      "description": "Group Pub (Dart/Flutter) updates",
+      "matchManagers": ["pub"],
+      "groupName": "pub-dependencies"
+    }
+  ]
+}

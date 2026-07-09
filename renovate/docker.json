@@ -1,0 +1,10 @@
+{
+  "extends": ["github>iamvikshan/.github//renovate/base"],
+  "packageRules": [
+    {
+      "description": "Group Docker updates",
+      "matchManagers": ["dockerfile", "docker-compose"],
+      "groupName": "docker-dependencies"
+    }
+  ]
+}

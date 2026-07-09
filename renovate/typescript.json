@@ -14,8 +14,7 @@
     },
     {
       "groupName": "TypeScript and types",
-      "matchPackageNames": ["typescript", "/^@types/"],
-      "automerge": true
+      "matchPackageNames": ["typescript", "/^@types/"]
     }
   ]
 }
