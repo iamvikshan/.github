@@ -98,3 +98,5 @@ else
     printf '\033]52;c;%s\a' "$(base64 | tr -d '\n')"
   }
 fi
+
+export PATH="/root/.bun/bin:$PATH"
