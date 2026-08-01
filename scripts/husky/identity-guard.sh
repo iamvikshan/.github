@@ -35,7 +35,8 @@ if [ "$EFFECTIVE_USER" != "$EXPECTED_NAME" ] || [ "$EFFECTIVE_EMAIL" != "$EXPECT
   echo "   Expected:  $EXPECTED_NAME <$EXPECTED_EMAIL>"
   echo "   Effective: $EFFECTIVE_USER <$EFFECTIVE_EMAIL>"
   if [ -n "${GIT_AUTHOR_NAME:-}" ] || [ -n "${GIT_AUTHOR_EMAIL:-}" ]; then
-    echo "   (GIT_AUTHOR_NAME/EMAIL env vars are overriding git config)"
+    echo "   (GIT_AUTHOR_NAME/EMAIL env vars are overriding git config — unset them first)"
+    echo "     unset GIT_AUTHOR_NAME GIT_AUTHOR_EMAIL"
   fi
   echo ""
   echo "To fix, run 'bun bs' or set your identity:"
