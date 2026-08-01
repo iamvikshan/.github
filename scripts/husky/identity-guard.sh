@@ -19,7 +19,7 @@ if [ -z "$EXPECTED_NAME" ] || [ -z "$EXPECTED_EMAIL" ]; then
   exit 1
 fi
 
-# Resolve effective author identity (local config > global config > env vars)
+# Resolve effective author identity (env vars > local config > global config)
 # git config without --global returns local first, then global
 CONFIG_USER=$(git config user.name 2>/dev/null || echo "")
 CONFIG_EMAIL=$(git config user.email 2>/dev/null || echo "")
