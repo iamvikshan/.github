@@ -20,7 +20,7 @@ runs:
       uses: actions/checkout@v7.0.1
 
     - name: Install, build, and upload site
-      uses: withastro/action@v6.1.2
+      uses: withastro/action@v6.1.3
       with:
         path: ${{ inputs.path }}
         node-version: ${{ inputs.node-version }}
