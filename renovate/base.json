@@ -59,6 +59,11 @@
       "groupName": "semantic-release ecosystem"
     },
     {
+      "description": "restrict conventional-changelog-conventionalcommits due to semantic-release parser incompatibility",
+      "matchPackageNames": ["conventional-changelog-conventionalcommits"],
+      "allowedVersions": "<10.0.0"
+    },
+    {
       "groupName": "linters and formatters",
       "matchPackageNames": [
         "husky",
