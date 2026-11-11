@@ -19,7 +19,7 @@ if [ -z "$EXPECTED_NAME" ] || [ -z "$EXPECTED_EMAIL" ]; then
   exit 1
 fi
 
-# Resolve effective author identity (env vars > local config > global config)
+# Resolve effective author identity (highest to lowest priority: env vars > local config > global config)
 # git config without --global returns local first, then global
 CONFIG_USER=$(git config user.name 2>/dev/null || echo "")
 CONFIG_EMAIL=$(git config user.email 2>/dev/null || echo "")
@@ -27,8 +27,10 @@ EFFECTIVE_USER="${GIT_AUTHOR_NAME:-$CONFIG_USER}"
 EFFECTIVE_EMAIL="${GIT_AUTHOR_EMAIL:-$CONFIG_EMAIL}"
 
 # Resolve effective committer identity
-EFFECTIVE_COMMITTER_USER="${GIT_COMMITTER_NAME:-$EFFECTIVE_USER}"
-EFFECTIVE_COMMITTER_EMAIL="${GIT_COMMITTER_EMAIL:-$EFFECTIVE_EMAIL}"
+# Git falls back to user.name/user.email from config when GIT_COMMITTER_* is unset,
+# not to GIT_AUTHOR_*, so use CONFIG_USER/CONFIG_EMAIL as the fallback here.
+EFFECTIVE_COMMITTER_USER="${GIT_COMMITTER_NAME:-$CONFIG_USER}"
+EFFECTIVE_COMMITTER_EMAIL="${GIT_COMMITTER_EMAIL:-$CONFIG_EMAIL}"
 
 if [ "$EFFECTIVE_USER" != "$EXPECTED_NAME" ] || [ "$EFFECTIVE_EMAIL" != "$EXPECTED_EMAIL" ]; then
   echo "❌ Git identity mismatch!"
@@ -51,7 +53,8 @@ if [ "$EFFECTIVE_COMMITTER_USER" != "$EXPECTED_NAME" ] || [ "$EFFECTIVE_COMMITTE
   echo "   Expected:  $EXPECTED_NAME <$EXPECTED_EMAIL>"
   echo "   Committer: $EFFECTIVE_COMMITTER_USER <$EFFECTIVE_COMMITTER_EMAIL>"
   if [ -n "${GIT_COMMITTER_NAME:-}" ] || [ -n "${GIT_COMMITTER_EMAIL:-}" ]; then
-    echo "   (GIT_COMMITTER_NAME/EMAIL env vars are overriding git config)"
+    echo "   (GIT_COMMITTER_NAME/EMAIL env vars are overriding git config — unset them first)"
+    echo "     unset GIT_COMMITTER_NAME GIT_COMMITTER_EMAIL"
   fi
   echo ""
   echo "To fix, run 'bun bs' or set your identity:"

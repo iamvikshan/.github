@@ -22,8 +22,8 @@
   "lockFileMaintenance": {
     "enabled": true
   },
-  
-"packageRules": [
+
+  "packageRules": [
     {
       "description": "Production dependencies get a 3-day minimum release age",
       "matchDepTypes": ["dependencies"],
@@ -55,7 +55,11 @@
     },
     {
       "description": "Group semantic-release ecosystem",
-      "matchPackagePatterns": ["^@semantic-release/", "^semantic-release", "^conventional-changelog"],
+      "matchPackagePatterns": [
+        "^@semantic-release/",
+        "^semantic-release",
+        "^conventional-changelog"
+      ],
       "groupName": "semantic-release ecosystem"
     },
     {
@@ -67,13 +71,9 @@
         "oxfmt",
         "lint-staged"
       ],
-      "matchPackagePatterns": [
-        "^oxlint",
-        "^oxfmt",
-        "eslint"
-      ]
+      "matchPackagePatterns": ["^oxlint", "^oxfmt", "eslint"]
     }
-  ],  
+  ],
   "vulnerabilityAlerts": {
     "labels": ["security"]
   }
