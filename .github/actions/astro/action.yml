@@ -17,10 +17,10 @@ runs:
   using: 'composite'
   steps:
     - name: Checkout repository
-      uses: actions/checkout@v7.0.0
+      uses: actions/checkout@v7.0.1
 
     - name: Install, build, and upload site
-      uses: withastro/action@v6.1.2
+      uses: withastro/action@v6.1.4
       with:
         path: ${{ inputs.path }}
         node-version: ${{ inputs.node-version }}
@@ -28,4 +28,4 @@ runs:
 
     - name: Deploy to GitHub Pages
       id: deployment
-      uses: actions/deploy-pages@v5.0.0
+      uses: actions/deploy-pages@v5.0.1

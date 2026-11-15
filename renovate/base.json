@@ -4,7 +4,7 @@
   "extends": ["config:recommended", ":semanticCommits"],
   "baseBranches": ["main"],
   "automerge": true,
-  "minimumReleaseAge": "0 days",
+  "minimumReleaseAge": "3 days",
   "prConcurrentLimit": 0,
   "prHourlyLimit": 0,
   "pinDigests": false,
@@ -61,6 +61,11 @@
         "^conventional-changelog"
       ],
       "groupName": "semantic-release ecosystem"
+    },
+    {
+      "description": "restrict conventional-changelog-conventionalcommits due to semantic-release parser incompatibility",
+      "matchPackageNames": ["conventional-changelog-conventionalcommits"],
+      "allowedVersions": "<10.0.0"
     },
     {
       "groupName": "linters and formatters",
