@@ -77,7 +77,14 @@ if (( $+commands[fzf] )); then
         zstyle ':fzf-tab:complete:cd:*' fzf-preview 'eza -1 --icons --color=always $realpath'
     fi
 
-    source <(fzf --zsh) 2>/dev/null || true
+    if fzf --zsh >/dev/null 2>&1; then
+        source <(fzf --zsh)
+    else
+        for fzf_dir in /usr/share/doc/fzf/examples /usr/share/fzf; do
+            [[ -f "$fzf_dir/completion.zsh" ]] && source "$fzf_dir/completion.zsh"
+            [[ -f "$fzf_dir/key-bindings.zsh" ]] && source "$fzf_dir/key-bindings.zsh"
+        done
+    fi
 fi
 
 # zoxide smart cd initialization

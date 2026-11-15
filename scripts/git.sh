@@ -42,6 +42,83 @@ mask_token() {
     fi
 }
 
+read_secret() {
+    prompt_text="$1"
+    saved_stty=""
+    if [ -r /dev/tty ]; then
+        saved_stty="$(stty -g < /dev/tty 2>/dev/null || true)"
+    fi
+
+    restore_tty() {
+        if [ -n "${saved_stty:-}" ]; then
+            stty "$saved_stty" < /dev/tty 2>/dev/null || true
+        fi
+    }
+
+    trap 'restore_tty; printf "\n" >&2; exit 130' INT TERM HUP
+    printf "%s" "$prompt_text"
+    stty -echo < /dev/tty 2>/dev/null || true
+
+    read_rc=0
+    if ! read -r SECRET_INPUT < /dev/tty; then
+        read_rc=1
+    fi
+
+    restore_tty
+    printf "\n"
+    trap - INT TERM HUP
+    return "$read_rc"
+}
+
+extract_forge_coords() {
+    raw_url="$1"
+    clean_url="${raw_url%/}"
+    clean_url="${clean_url%.git}"
+
+    no_scheme="$clean_url"
+    case "$no_scheme" in
+        https://*) no_scheme="${no_scheme#https://}" ;;
+        http://*)  no_scheme="${no_scheme#http://}" ;;
+        ssh://*)   no_scheme="${no_scheme#ssh://}" ;;
+    esac
+
+    case "$no_scheme" in
+        github.com[:/]*|*@github.com[:/]*)
+            host_prefix="${no_scheme%%github.com[:/]*}"
+            case "$host_prefix" in
+                */*) return 1 ;;
+            esac
+            gh_path="${no_scheme#*github.com[:/]}"
+            parsed_owner="${gh_path%%/*}"
+            parsed_repo="${gh_path#*/}"
+            if [ -n "$gh_path" ] && [ -n "$parsed_owner" ] && [ -n "$parsed_repo" ] && [ "$parsed_owner" != "$gh_path" ] && [ "$parsed_repo" = "${parsed_repo#*/}" ]; then
+                GH_OWNER="$parsed_owner"
+                GH_REPO="$parsed_repo"
+                return 0
+            fi
+            return 1
+            ;;
+        gitlab.com[:/]*|*@gitlab.com[:/]*)
+            host_prefix="${no_scheme%%gitlab.com[:/]*}"
+            case "$host_prefix" in
+                */*) return 1 ;;
+            esac
+            gl_path="${no_scheme#*gitlab.com[:/]}"
+            parsed_gl_ns="${gl_path%/*}"
+            parsed_gl_repo="${gl_path##*/}"
+            if [ -n "$gl_path" ] && [ -n "$parsed_gl_ns" ] && [ -n "$parsed_gl_repo" ] && [ "$parsed_gl_ns" != "$gl_path" ]; then
+                GL_NAMESPACE="$parsed_gl_ns"
+                GL_REPO="$parsed_gl_repo"
+                return 0
+            fi
+            return 1
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
 # 1. standalone fallback for interactive mode, host_id, and ~/.atlasrc
 FORCE_DEFAULT=false
 for arg in "$@"; do
@@ -66,44 +143,74 @@ if [ -z "${HOST_ID:-}" ]; then
     fi
 fi
 
+# 2. secret & context waterfall (~/.atlasrc + local .env)
 ATLAS_SECRETS="${ATLAS_SECRETS:-$HOME/.atlasrc}"
-if [ -f "$ATLAS_SECRETS" ] && [ -z "${GH_TOKEN:-}" ] && [ -z "${GL_TOKEN:-}" ]; then
+ENV_GH_TOKEN="${GH_TOKEN:-}"
+ENV_GL_TOKEN="${GL_TOKEN:-}"
+
+if [ -f "$ATLAS_SECRETS" ]; then
+    log_info "loading cached secrets from $ATLAS_SECRETS"
     set -a
     # shellcheck disable=SC1090
     . "$ATLAS_SECRETS"
     set +a
 fi
 
+[ -n "$ENV_GH_TOKEN" ] && GH_TOKEN="$ENV_GH_TOKEN"
+[ -n "$ENV_GL_TOKEN" ] && GL_TOKEN="$ENV_GL_TOKEN"
 GH_TOKEN="${GH_TOKEN:-}"
 GL_TOKEN="${GL_TOKEN:-}"
 
-# 2. trust workspace & extract repository context
-if ! git config --global --get-all safe.directory 2>/dev/null | grep -qxF "$PWD"; then
-    git config --global --add safe.directory "$PWD"
+ENV_FILE="${CALLER_DIR:-$PWD}/.env"
+if [ -f "$ENV_FILE" ]; then
+    if [ -z "$GH_TOKEN" ]; then
+        GH_TOKEN="$(grep -E '^GH_TOKEN=' "$ENV_FILE" | head -n 1 | cut -d '=' -f2- | tr -d "\"'" || true)"
+    fi
+    if [ -z "$GL_TOKEN" ]; then
+        GL_TOKEN="$(grep -E '^GL_TOKEN=' "$ENV_FILE" | head -n 1 | cut -d '=' -f2- | tr -d "\"'" || true)"
+    fi
+fi
+export GH_TOKEN GL_TOKEN ATLAS_SECRETS
+
+# 3. trust workspace & extract repository context from worktree root
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+TARGET_DIR="${REPO_ROOT:-$PWD}"
+
+if ! git config --global --get-all safe.directory 2>/dev/null | grep -qxF "$TARGET_DIR"; then
+    git config --global --add safe.directory "$TARGET_DIR"
 fi
 
+case "${GH_OWNER:-}${GH_REPO:-}" in
+    *[:/]*)
+        log_warn "malformed github coordinates in cache; resetting to defaults."
+        GH_OWNER=""
+        GH_REPO=""
+        ;;
+esac
+case "${GL_NAMESPACE:-}${GL_REPO:-}" in
+    *:*)
+        log_warn "malformed gitlab coordinates in cache; resetting to defaults."
+        GL_NAMESPACE=""
+        GL_REPO=""
+        ;;
+esac
+
 GH_OWNER="${GH_OWNER:-$GH_USERNAME}"
-GH_REPO="${GH_REPO:-$(basename "$PWD")}"
+GH_REPO="${GH_REPO:-$(basename "$TARGET_DIR")}"
 GL_NAMESPACE="${GL_NAMESPACE:-$DEFAULT_GL_NAMESPACE}"
 GL_REPO="${GL_REPO:-$GH_REPO}"
 
 REMOTE_URL="$(git config --get remote.origin.url 2>/dev/null || true)"
+REMOTE_VALID=true
+
 if [ -n "$REMOTE_URL" ]; then
-    case "$REMOTE_URL" in
-        *github.com*)
-            gh_path="$(printf '%s' "$REMOTE_URL" | sed -E 's|^.*github\.com[:/]([^/]+/[^/.]+)(\.git)?$|\1|')"
-            GH_OWNER="${gh_path%%/*}"
-            GH_REPO="${gh_path#*/}"
-            ;;
-        *gitlab.com*)
-            gl_path="$(printf '%s' "$REMOTE_URL" | sed -E 's|^.*gitlab\.com[:/]([^/]+/[^/.]+)(\.git)?$|\1|')"
-            GL_NAMESPACE="${gl_path%%/*}"
-            GL_REPO="${gl_path#*/}"
-            ;;
-    esac
+    if ! extract_forge_coords "$REMOTE_URL"; then
+        REMOTE_VALID=false
+        log_warn "unrecognized origin url ($REMOTE_URL); preserving existing remotes."
+    fi
 fi
 
-# 3. interactive configuration review wizard
+# 4. interactive configuration review wizard
 if [ "$IS_INTERACTIVE" = "true" ]; then
     printf "\n${CYAN}--- git & forge configuration review ---${NC}\n"
     while true; do
@@ -121,20 +228,22 @@ if [ "$IS_INTERACTIVE" = "true" ]; then
         case "$(lowercase "$choice")" in
             a|accept) break ;;
             1)
-                printf "enter github token: "
-                stty -echo < /dev/tty 2>/dev/null || true
-                read -r GH_TOKEN < /dev/tty
-                stty echo < /dev/tty 2>/dev/null || true
-                printf "\n"
+                if read_secret "enter github token: "; then
+                    GH_TOKEN="$SECRET_INPUT"
+                else
+                    log_warn "token input aborted (eof); keeping existing value."
+                fi
+                unset SECRET_INPUT
                 ;;
             2) printf "enter github owner: "; read -r GH_OWNER < /dev/tty ;;
             3) printf "enter github repo: "; read -r GH_REPO < /dev/tty ;;
             4)
-                printf "enter gitlab token: "
-                stty -echo < /dev/tty 2>/dev/null || true
-                read -r GL_TOKEN < /dev/tty
-                stty echo < /dev/tty 2>/dev/null || true
-                printf "\n"
+                if read_secret "enter gitlab token: "; then
+                    GL_TOKEN="$SECRET_INPUT"
+                else
+                    log_warn "token input aborted (eof); keeping existing value."
+                fi
+                unset SECRET_INPUT
                 ;;
             5) printf "enter gitlab namespace (type SKIP to ignore): "; read -r GL_NAMESPACE < /dev/tty ;;
             6) printf "enter gitlab repo: "; read -r GL_REPO < /dev/tty ;;
@@ -163,13 +272,19 @@ EOF
     esac
 fi
 
-# 4. global git defaults, ntfs filemode guard & blood-obsidian delta pager
-log_info "configuring global git identity, ntfs compatibility, and delta pager..."
-git config --global user.name "$GIT_AUTHOR_NAME"
-git config --global user.email "$GIT_AUTHOR_EMAIL"
+# 5. global & local git identity reconciliation, ntfs filemode guard & delta pager
+log_info "configuring git identity, ntfs compatibility, and delta pager..."
+git config --global --replace-all user.name "$GIT_AUTHOR_NAME"
+git config --global --replace-all user.email "$GIT_AUTHOR_EMAIL"
 git config --global init.defaultBranch main
 git config --global pull.rebase true
 git config --global core.fileMode false
+
+if [ -n "$REPO_ROOT" ]; then
+    git config --local --replace-all user.name "$GIT_AUTHOR_NAME"
+    git config --local --replace-all user.email "$GIT_AUTHOR_EMAIL"
+    git config --local core.fileMode false
+fi
 
 if command -v delta >/dev/null 2>&1; then
     git config --global core.pager delta
@@ -190,7 +305,7 @@ if command -v delta >/dev/null 2>&1; then
     log_ok "git-delta blood-obsidian pager configured."
 fi
 
-# 5. install secure credential helper (keeps raw tokens out of .git/config on ntfs)
+# 6. install secure credential helper (keeps raw tokens out of .git/config on ntfs)
 mkdir -p "$HOME/.local/bin"
 CRED_HELPER="$HOME/.local/bin/git-credential-atlas"
 cat > "$CRED_HELPER" << 'EOF'
@@ -228,7 +343,7 @@ git config --global --replace-all credential.https://github.com.helper "$CRED_HE
 git config --global --replace-all credential.https://gitlab.com.helper "$CRED_HELPER"
 log_ok "credential helper bound (zero plaintext tokens in .git/config)."
 
-# 6. setup ssh commit signing key
+# 7. setup ssh commit signing key
 KEY_NAME="${HOST_ID}-git-signing"
 KEY_PATH="$HOME/.ssh/$KEY_NAME"
 
@@ -246,20 +361,21 @@ fi
 
 git config --global --unset-all user.signingkey 2>/dev/null || true
 git config --global --unset-all gpg.ssh.program 2>/dev/null || true
-git config --local --unset-all user.signingkey 2>/dev/null || true
-git config --local --unset-all gpg.ssh.program 2>/dev/null || true
-
 git config --global --replace-all gpg.format ssh
 git config --global --replace-all user.signingkey "${KEY_PATH}.pub"
 git config --global --replace-all gpg.ssh.program ssh-keygen
 git config --global --replace-all commit.gpgsign true
 
-git config --local --replace-all gpg.format ssh
-git config --local --replace-all user.signingkey "${KEY_PATH}.pub"
-git config --local --replace-all gpg.ssh.program ssh-keygen
-git config --local --replace-all commit.gpgsign true
+if [ -n "$REPO_ROOT" ]; then
+    git config --local --unset-all user.signingkey 2>/dev/null || true
+    git config --local --unset-all gpg.ssh.program 2>/dev/null || true
+    git config --local --replace-all gpg.format ssh
+    git config --local --replace-all user.signingkey "${KEY_PATH}.pub"
+    git config --local --replace-all gpg.ssh.program ssh-keygen
+    git config --local --replace-all commit.gpgsign true
+fi
 
-# 7. register ssh signing key via forge apis & prune overflow
+# 8. register ssh signing key via forge apis & prune overflow
 PUB_KEY="$(cat "${KEY_PATH}.pub")"
 
 prune_github_keys() {
@@ -303,8 +419,9 @@ prune_gitlab_keys() {
 
 enable_gitlab_force_push() {
     [ -n "$GL_TOKEN" ] && command -v jq >/dev/null 2>&1 || return 0
+    encoded_project="$(printf '%s/%s' "$GL_NAMESPACE" "$GL_REPO" | sed 's|/|%2F|g')"
     project_id="$(curl -s --header "PRIVATE-TOKEN: $GL_TOKEN" \
-        "https://gitlab.com/api/v4/projects/${GL_NAMESPACE}%2F${GL_REPO}" 2>/dev/null | jq -r '.id // empty' 2>/dev/null || true)"
+        "https://gitlab.com/api/v4/projects/${encoded_project}" 2>/dev/null | jq -r '.id // empty' 2>/dev/null || true)"
 
     if [ -z "$project_id" ]; then
         log_warn "gitlab project ${GL_NAMESPACE}/${GL_REPO} not found via api; skipping branch protection patch."
@@ -355,38 +472,70 @@ if [ -n "$GL_TOKEN" ] && [ "$(lowercase "$GL_NAMESPACE")" != "skip" ]; then
     esac
 fi
 
-# 8. configure clean dual-push remotes
-GH_CLEAN_URL="https://github.com/${GH_OWNER}/${GH_REPO}.git"
-git remote set-url origin "$GH_CLEAN_URL" 2>/dev/null || git remote add origin "$GH_CLEAN_URL"
-git config --unset-all remote.origin.pushurl 2>/dev/null || true
-git remote set-url --add --push origin "$GH_CLEAN_URL"
-log_ok "github remote configured: ${GH_OWNER}/${GH_REPO}"
+# 9. configure clean dual-push remotes (only when origin url is valid or unset)
+if [ "$REMOTE_VALID" = "true" ] && [ -n "$GH_OWNER" ] && [ -n "$GH_REPO" ]; then
+    GH_CLEAN_URL="https://github.com/${GH_OWNER}/${GH_REPO}.git"
+    git remote set-url origin "$GH_CLEAN_URL" 2>/dev/null || git remote add origin "$GH_CLEAN_URL"
+    git config --unset-all remote.origin.pushurl 2>/dev/null || true
+    git remote set-url --add --push origin "$GH_CLEAN_URL"
+    log_ok "github remote configured: ${GH_OWNER}/${GH_REPO}"
 
-if [ -n "$GL_TOKEN" ] && [ "$(lowercase "$GL_NAMESPACE")" != "skip" ]; then
-    GL_CLEAN_URL="https://gitlab.com/${GL_NAMESPACE}/${GL_REPO}.git"
-    git remote set-url --add --push origin "$GL_CLEAN_URL"
-    log_ok "gitlab mirror push remote configured: ${GL_NAMESPACE}/${GL_REPO}"
-    enable_gitlab_force_push
+    if [ -n "$GL_TOKEN" ] && [ "$(lowercase "$GL_NAMESPACE")" != "skip" ]; then
+        GL_CLEAN_URL="https://gitlab.com/${GL_NAMESPACE}/${GL_REPO}.git"
+        git remote set-url --add --push origin "$GL_CLEAN_URL"
+        log_ok "gitlab mirror push remote configured: ${GL_NAMESPACE}/${GL_REPO}"
+        enable_gitlab_force_push
+    else
+        log_info "skipping gitlab mirror remote."
+    fi
 else
-    log_info "skipping gitlab mirror remote."
+    log_warn "skipping remote updates due to unmatched or incomplete repository coordinates."
 fi
 
-# 9. husky hooks & local identity guard
-mkdir -p .husky
-if [ ! -f ".husky/pre-commit" ]; then
-    curl -fsSL "${REPO_RAW_ROOT}/.husky/pre-commit" -o .husky/pre-commit 2>/dev/null || true
-    chmod +x .husky/pre-commit 2>/dev/null || true
-    log_ok "installed .husky/pre-commit."
-fi
+# 10. husky hooks & local identity guard at worktree root
+install_hook_file() {
+    url="$1"
+    dest="$2"
+    label="$3"
+    tmp_hook="$(mktemp "${dest}.tmp.XXXXXX")"
+    if ! curl -fsSL "$url" -o "$tmp_hook" || [ ! -s "$tmp_hook" ]; then
+        rm -f "$tmp_hook"
+        log_fail "failed to download $label from $url."
+    fi
+    if ! chmod +x "$tmp_hook" || ! mv "$tmp_hook" "$dest"; then
+        rm -f "$tmp_hook"
+        log_fail "failed to install executable $label at $dest."
+    fi
+    log_ok "installed $label."
+}
 
-git config --local atlas.expected-name "$GIT_AUTHOR_NAME"
-git config --local atlas.expected-email "$GIT_AUTHOR_EMAIL"
+if [ -n "$REPO_ROOT" ]; then
+    HUSKY_DIR="$REPO_ROOT/.husky"
+    mkdir -p "$HUSKY_DIR"
 
-if [ ! -f ".husky/identity-guard.sh" ]; then
-    curl -fsSL "${REPO_RAW_ROOT}/.husky/identity-guard.sh" -o .husky/identity-guard.sh 2>/dev/null || true
+    if [ ! -f "$HUSKY_DIR/pre-commit" ]; then
+        install_hook_file "${REPO_RAW_ROOT}/.husky/pre-commit" "$HUSKY_DIR/pre-commit" ".husky/pre-commit"
+    else
+        chmod +x "$HUSKY_DIR/pre-commit" || log_fail "failed to mark existing .husky/pre-commit executable."
+    fi
+
+    git config --local atlas.expected-name "$GIT_AUTHOR_NAME"
+    git config --local atlas.expected-email "$GIT_AUTHOR_EMAIL"
+
+    if [ ! -f "$HUSKY_DIR/identity-guard.sh" ]; then
+        install_hook_file "${REPO_RAW_ROOT}/.husky/identity-guard.sh" "$HUSKY_DIR/identity-guard.sh" ".husky/identity-guard.sh"
+    else
+        chmod +x "$HUSKY_DIR/identity-guard.sh" || log_fail "failed to mark existing .husky/identity-guard.sh executable."
+    fi
+
+    # activate husky hooks on fresh clones so git invokes .husky/pre-commit
+    if [ -d "$REPO_ROOT/node_modules/husky" ] && command -v bun >/dev/null 2>&1; then
+        (cd "$REPO_ROOT" && bunx husky) >/dev/null 2>&1 || git config --local core.hooksPath .husky
+    elif [ -z "$(git config --local --get core.hooksPath 2>/dev/null || true)" ]; then
+        git config --local core.hooksPath .husky
+    fi
+    log_ok "local identity guard and git hooks active."
 fi
-chmod +x .husky/identity-guard.sh 2>/dev/null || true
-log_ok "local identity guard active."
 
 printf "\n${GREEN}==========================================${NC}\n"
 printf "${GREEN}git & environment setup complete${NC}\n"

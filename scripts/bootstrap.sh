@@ -23,6 +23,27 @@ log_ok()   { printf "${GREEN}[ ok ]${NC} %s\n" "$1"; }
 log_warn() { printf "${YELLOW}[warn]${NC} %s\n" "$1"; }
 log_fail() { printf "${RED}[fail]${NC} %s\n" "$1" >&2; exit 1; }
 
+TMP_FILES=""
+cleanup_tmp() {
+    for f in $TMP_FILES; do
+        [ -n "$f" ] && rm -f "$f"
+    done
+}
+trap cleanup_tmp EXIT
+
+run_remote_script() {
+    script_name="$1"
+    shift
+    tmp_script="$(mktemp "${TMPDIR:-/tmp}/${script_name}.XXXXXX")"
+    TMP_FILES="$TMP_FILES $tmp_script"
+    if ! curl -fsSL "$REPO_RAW_BASE/$script_name" -o "$tmp_script" || [ ! -s "$tmp_script" ]; then
+        rm -f "$tmp_script"
+        log_fail "failed to download $script_name."
+    fi
+    sh "$tmp_script" "$@"
+    rm -f "$tmp_script"
+}
+
 # 1. parse execution mode & verify controlling tty
 FORCE_DEFAULT=false
 for arg in "$@"; do
@@ -55,40 +76,7 @@ else
 fi
 export HOST_ID
 
-# 3. secret & context waterfall (~/.atlasrc + local .env)
-ATLAS_SECRETS="$HOME/.atlasrc"
-if [ ! -f "$ATLAS_SECRETS" ]; then
-    if [ -f "$HOME/.atlas_secrets" ]; then
-        log_info "migrating token cache from ~/.atlas_secrets to ~/.atlasrc"
-        cp -p "$HOME/.atlas_secrets" "$ATLAS_SECRETS"
-    elif [ -f "$HOME/.atlas_secrets.json" ]; then
-        log_info "migrating token cache from ~/.atlas_secrets.json to ~/.atlasrc"
-        cp -p "$HOME/.atlas_secrets.json" "$ATLAS_SECRETS"
-    fi
-fi
-
-GH_TOKEN="${GH_TOKEN:-}"
-GL_TOKEN="${GL_TOKEN:-}"
-
-if [ -f "$ATLAS_SECRETS" ]; then
-    log_info "loading cached secrets from $ATLAS_SECRETS"
-    set -a
-    # shellcheck disable=SC1090
-    . "$ATLAS_SECRETS"
-    set +a
-fi
-
-if [ -f "$CALLER_DIR/.env" ]; then
-    if [ -z "$GH_TOKEN" ]; then
-        GH_TOKEN="$(grep -E '^GH_TOKEN=' "$CALLER_DIR/.env" | head -n 1 | cut -d '=' -f2- | tr -d "\"'" || true)"
-    fi
-    if [ -z "$GL_TOKEN" ]; then
-        GL_TOKEN="$(grep -E '^GL_TOKEN=' "$CALLER_DIR/.env" | head -n 1 | cut -d '=' -f2- | tr -d "\"'" || true)"
-    fi
-fi
-export GH_TOKEN GL_TOKEN ATLAS_SECRETS
-
-# 4. install base prerequisites (zsh, git, curl, jq, ca-certificates)
+# 3. install base prerequisites (zsh, git, curl, jq, ca-certificates)
 log_exec "verifying base prerequisites..."
 if command -v apt-get >/dev/null 2>&1; then
     $SUDO apt-get update -qq
@@ -111,7 +99,7 @@ if [ -f "$SCRIPT_DIR/packages.sh" ]; then
     chmod +x "$SCRIPT_DIR/packages.sh"
     sh "$SCRIPT_DIR/packages.sh"
 else
-    curl -fsSL "$REPO_RAW_BASE/packages.sh" | sh
+    run_remote_script "packages.sh"
 fi
 
 # 6. install standalone zsh plugins (zero oh-my-zsh overhead)
@@ -145,7 +133,13 @@ install_config() {
     if [ -f "$SCRIPT_DIR/$filename" ]; then
         cp "$SCRIPT_DIR/$filename" "$dest"
     else
-        curl -fsSL "$REPO_RAW_BASE/$filename" -o "$dest" || log_fail "failed to fetch $filename"
+        tmp_cfg="$(mktemp "${dest}.tmp.XXXXXX")"
+        TMP_FILES="$TMP_FILES $tmp_cfg"
+        if ! curl -fsSL "$REPO_RAW_BASE/$filename" -o "$tmp_cfg" || [ ! -s "$tmp_cfg" ]; then
+            rm -f "$tmp_cfg"
+            log_fail "failed to fetch $filename"
+        fi
+        mv "$tmp_cfg" "$dest"
     fi
 }
 
@@ -161,10 +155,14 @@ log_ok "configurations deployed."
 # 8. configure login shell handoff (.profile for alpine/sh, .bashrc for debian/bash)
 HANDOFF_SNIPPET='
 # auto-handover interactive shells to zsh
-if [ -t 1 ] && [ -z "$ZSH_VERSION" ] && command -v zsh >/dev/null 2>&1; then
-    export SHELL="$(command -v zsh)"
-    exec zsh -l
-fi
+case "$-" in
+    *i*)
+        if [ -t 1 ] && [ -z "$ZSH_VERSION" ] && command -v zsh >/dev/null 2>&1; then
+            export SHELL="$(command -v zsh)"
+            exec zsh -l
+        fi
+        ;;
+esac
 '
 
 for rc_file in "$HOME/.profile" "$HOME/.bashrc"; do
@@ -188,13 +186,19 @@ log_ok "default shell locked to $ZSH_PATH."
 cd "$CALLER_DIR"
 if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
     log_info "git repository detected in $CALLER_DIR; running git.sh..."
-    GIT_ARGS=""
-    [ "$IS_INTERACTIVE" = "false" ] && GIT_ARGS="--default"
     if [ -f "$SCRIPT_DIR/git.sh" ]; then
         chmod +x "$SCRIPT_DIR/git.sh"
-        sh "$SCRIPT_DIR/git.sh" $GIT_ARGS
+        if [ "$IS_INTERACTIVE" = "false" ]; then
+            sh "$SCRIPT_DIR/git.sh" --default
+        else
+            sh "$SCRIPT_DIR/git.sh"
+        fi
     else
-        curl -fsSL "$REPO_RAW_BASE/git.sh" | sh -s -- $GIT_ARGS
+        if [ "$IS_INTERACTIVE" = "false" ]; then
+            run_remote_script "git.sh" --default
+        else
+            run_remote_script "git.sh"
+        fi
     fi
 else
     log_info "not inside a git repository; skipping git.sh."
