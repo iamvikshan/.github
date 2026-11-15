@@ -184,21 +184,26 @@ log_ok "default shell locked to $ZSH_PATH."
 
 # 9. smart git setup (executes only if caller directory is inside a git worktree)
 cd "$CALLER_DIR"
-if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-    log_info "git repository detected in $CALLER_DIR; running git.sh..."
+run_git_setup() {
     if [ -f "$SCRIPT_DIR/git.sh" ]; then
-        chmod +x "$SCRIPT_DIR/git.sh"
-        if [ "$IS_INTERACTIVE" = "false" ]; then
-            sh "$SCRIPT_DIR/git.sh" --default
-        else
-            sh "$SCRIPT_DIR/git.sh"
-        fi
+        sh "$SCRIPT_DIR/git.sh" "$@"
     else
-        if [ "$IS_INTERACTIVE" = "false" ]; then
-            run_remote_script "git.sh" --default
-        else
-            run_remote_script "git.sh"
-        fi
+        run_remote_script "git.sh" "$@"
+    fi
+}
+repo_discovery="$(LC_ALL=C git rev-parse --is-inside-work-tree 2>&1 || true)"
+case "$repo_discovery" in
+    *"detected dubious ownership in repository"*)
+        run_git_setup --trust-only
+        repo_discovery="$(git rev-parse --is-inside-work-tree 2>/dev/null || true)"
+        ;;
+esac
+if [ "$repo_discovery" = "true" ]; then
+    log_info "git repository detected in $CALLER_DIR; running git.sh..."
+    if [ "$IS_INTERACTIVE" = "false" ]; then
+        run_git_setup --default
+    else
+        run_git_setup
     fi
 else
     log_info "not inside a git repository; skipping git.sh."

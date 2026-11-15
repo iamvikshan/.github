@@ -121,9 +121,11 @@ extract_forge_coords() {
 
 # 1. standalone fallback for interactive mode, host_id, and ~/.atlasrc
 FORCE_DEFAULT=false
+TRUST_ONLY=false
 for arg in "$@"; do
     case "$arg" in
         --default|--non-interactive|-y) FORCE_DEFAULT=true ;;
+        --trust-only) TRUST_ONLY=true ;;
     esac
 done
 
@@ -142,6 +144,23 @@ if [ -z "${HOST_ID:-}" ]; then
         HOST_ID="$(hostname -s 2>/dev/null || uname -n 2>/dev/null || printf 'local-machine')"
     fi
 fi
+
+# Trust only the discovered checkout, including when invoked from a subdirectory.
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+if [ -z "$REPO_ROOT" ]; then
+    discovery_error="$(LC_ALL=C git rev-parse --show-toplevel 2>&1 || true)"
+    case "$discovery_error" in
+        *"detected dubious ownership in repository"*)
+            REPO_ROOT="$(git -c safe.directory='*' rev-parse --show-toplevel 2>/dev/null || true)"
+            ;;
+    esac
+fi
+TARGET_DIR="${REPO_ROOT:-$PWD}"
+if ! git config --global --get-all safe.directory 2>/dev/null | grep -qxF "$TARGET_DIR"; then
+    git config --global --add safe.directory "$TARGET_DIR"
+fi
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+[ "$TRUST_ONLY" = "false" ] || exit 0
 
 # 2. secret & context waterfall (~/.atlasrc + local .env)
 ATLAS_SECRETS="${ATLAS_SECRETS:-$HOME/.atlasrc}"
@@ -172,13 +191,7 @@ if [ -f "$ENV_FILE" ]; then
 fi
 export GH_TOKEN GL_TOKEN ATLAS_SECRETS
 
-# 3. trust workspace & extract repository context from worktree root
-REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || true)"
-TARGET_DIR="${REPO_ROOT:-$PWD}"
-
-if ! git config --global --get-all safe.directory 2>/dev/null | grep -qxF "$TARGET_DIR"; then
-    git config --global --add safe.directory "$TARGET_DIR"
-fi
+# 3. repository context
 
 case "${GH_OWNER:-}${GH_REPO:-}" in
     *[:/]*)
@@ -206,7 +219,7 @@ REMOTE_VALID=true
 if [ -n "$REMOTE_URL" ]; then
     if ! extract_forge_coords "$REMOTE_URL"; then
         REMOTE_VALID=false
-        log_warn "unrecognized origin url ($REMOTE_URL); preserving existing remotes."
+        log_warn "unrecognized origin url; preserving existing remotes."
     fi
 fi
 
@@ -283,6 +296,10 @@ git config --global core.fileMode false
 if [ -n "$REPO_ROOT" ]; then
     git config --local --replace-all user.name "$GIT_AUTHOR_NAME"
     git config --local --replace-all user.email "$GIT_AUTHOR_EMAIL"
+    for role in author committer; do
+        git config --local --replace-all "$role.name" "$GIT_AUTHOR_NAME"
+        git config --local --replace-all "$role.email" "$GIT_AUTHOR_EMAIL"
+    done
     git config --local core.fileMode false
 fi
 
@@ -311,7 +328,6 @@ CRED_HELPER="$HOME/.local/bin/git-credential-atlas"
 cat > "$CRED_HELPER" << 'EOF'
 #!/bin/sh
 [ "$1" = "get" ] || exit 0
-[ -f "$HOME/.atlasrc" ] || exit 0
 
 host=""
 while IFS='=' read -r key val; do
@@ -319,10 +335,16 @@ while IFS='=' read -r key val; do
     [ "$key" = "host" ] && host="$val"
 done
 
-set -a
-# shellcheck disable=SC1091
-. "$HOME/.atlasrc"
-set +a
+cache_path="${ATLAS_SECRETS:-$(git config --global --get atlas.secrets-file 2>/dev/null || true)}"
+cache_path="${cache_path:-$HOME/.atlasrc}"
+# Environment credentials take precedence over cached credentials.
+if { [ "$host" = github.com ] && [ -z "${GH_TOKEN:-}" ]; } ||
+   { [ "$host" = gitlab.com ] && [ -z "${GL_TOKEN:-}" ]; }; then
+    if [ -f "$cache_path" ]; then
+        # shellcheck disable=SC1090
+        . "$cache_path"
+    fi
+fi
 
 case "$host" in
     github.com)
@@ -338,6 +360,12 @@ case "$host" in
 esac
 EOF
 chmod 700 "$CRED_HELPER"
+# Persist only the cache location for future helper processes.
+case "$ATLAS_SECRETS" in
+    /*) ;;
+    *) ATLAS_SECRETS="$PWD/$ATLAS_SECRETS" ;;
+esac
+git config --global atlas.secrets-file "$ATLAS_SECRETS"
 
 git config --global --replace-all credential.https://github.com.helper "$CRED_HELPER"
 git config --global --replace-all credential.https://gitlab.com.helper "$CRED_HELPER"
@@ -380,10 +408,13 @@ PUB_KEY="$(cat "${KEY_PATH}.pub")"
 
 prune_github_keys() {
     command -v jq >/dev/null 2>&1 || return 0
-    keys_json="$(curl -s -H "Accept: application/vnd.github+json" \
+    if ! keys_json="$(curl -s -H "Accept: application/vnd.github+json" \
         -H "Authorization: Bearer $GH_TOKEN" \
         -H "X-GitHub-Api-Version: 2022-11-28" \
-        https://api.github.com/user/ssh_signing_keys)"
+        https://api.github.com/user/ssh_signing_keys)"; then
+        log_warn "failed to list github signing keys; skipping pruning."
+        return 0
+    fi
 
     key_count="$(printf '%s' "$keys_json" | jq 'if type == "array" then length else 0 end' 2>/dev/null || printf '0')"
     if [ "$key_count" -gt "$MAX_SSH_KEYS" ]; then
@@ -395,14 +426,17 @@ prune_github_keys() {
                 -H "Accept: application/vnd.github+json" \
                 -H "Authorization: Bearer $GH_TOKEN" \
                 -H "X-GitHub-Api-Version: 2022-11-28" \
-                "https://api.github.com/user/ssh_signing_keys/${key_id}"
+                "https://api.github.com/user/ssh_signing_keys/${key_id}" || log_warn "failed to delete github signing key."
         done
     fi
 }
 
 prune_gitlab_keys() {
     command -v jq >/dev/null 2>&1 || return 0
-    keys_json="$(curl -s --header "PRIVATE-TOKEN: $GL_TOKEN" "https://gitlab.com/api/v4/user/keys")"
+    if ! keys_json="$(curl -s --header "PRIVATE-TOKEN: $GL_TOKEN" "https://gitlab.com/api/v4/user/keys")"; then
+        log_warn "failed to list gitlab signing keys; skipping pruning."
+        return 0
+    fi
 
     key_count="$(printf '%s' "$keys_json" | jq 'if type == "array" then [.[] | select(.usage_type == "signing")] | length else 0 end' 2>/dev/null || printf '0')"
     if [ "$key_count" -gt "$MAX_SSH_KEYS" ]; then
@@ -412,7 +446,7 @@ prune_gitlab_keys() {
         for key_id in $old_keys; do
             curl -s -o /dev/null -X DELETE \
                 --header "PRIVATE-TOKEN: $GL_TOKEN" \
-                "https://gitlab.com/api/v4/user/keys/${key_id}"
+                "https://gitlab.com/api/v4/user/keys/${key_id}" || log_warn "failed to delete gitlab signing key."
         done
     fi
 }
@@ -434,42 +468,48 @@ enable_gitlab_force_push() {
 }
 
 if [ -n "$GH_TOKEN" ]; then
-    HTTP_STATUS="$(curl -s -o /dev/null -w "%{http_code}" \
+    if HTTP_STATUS="$(curl -s -o /dev/null -w "%{http_code}" \
         -X POST \
         -H "Accept: application/vnd.github+json" \
         -H "Authorization: Bearer $GH_TOKEN" \
         -H "X-GitHub-Api-Version: 2022-11-28" \
         https://api.github.com/user/ssh_signing_keys \
-        -d "{\"title\":\"${KEY_NAME}\",\"key\":\"${PUB_KEY}\"}")"
+        -d "{\"title\":\"${KEY_NAME}\",\"key\":\"${PUB_KEY}\"}")"; then
 
-    case "$HTTP_STATUS" in
-        201|304|422)
-            log_ok "signing key registered on github."
-            prune_github_keys
-            ;;
-        *)
-            log_warn "github signing key registration returned http $HTTP_STATUS."
-            ;;
-    esac
+        case "$HTTP_STATUS" in
+            201|304|422)
+                log_ok "signing key registered on github."
+                prune_github_keys
+                ;;
+            *)
+                log_warn "github signing key registration returned http $HTTP_STATUS."
+                ;;
+        esac
+    else
+        log_warn "github signing key registration failed (transport error)."
+    fi
 fi
 
 if [ -n "$GL_TOKEN" ] && [ "$(lowercase "$GL_NAMESPACE")" != "skip" ]; then
-    HTTP_STATUS="$(curl -s -o /dev/null -w "%{http_code}" \
+    if HTTP_STATUS="$(curl -s -o /dev/null -w "%{http_code}" \
         -X POST \
         --header "PRIVATE-TOKEN: $GL_TOKEN" \
         --header "Content-Type: application/json" \
         -d "{\"title\":\"${KEY_NAME}\",\"key\":\"${PUB_KEY}\",\"usage_type\":\"signing\"}" \
-        "https://gitlab.com/api/v4/user/keys")"
+        "https://gitlab.com/api/v4/user/keys")"; then
 
-    case "$HTTP_STATUS" in
-        201|304|400)
-            log_ok "signing key registered on gitlab."
-            prune_gitlab_keys
-            ;;
-        *)
-            log_warn "gitlab signing key registration returned http $HTTP_STATUS."
-            ;;
-    esac
+        case "$HTTP_STATUS" in
+            201|304|400)
+                log_ok "signing key registered on gitlab."
+                prune_gitlab_keys
+                ;;
+            *)
+                log_warn "gitlab signing key registration returned http $HTTP_STATUS."
+                ;;
+        esac
+    else
+        log_warn "gitlab signing key registration failed (transport error)."
+    fi
 fi
 
 # 9. configure clean dual-push remotes (only when origin url is valid or unset)
@@ -513,7 +553,27 @@ if [ -n "$REPO_ROOT" ]; then
     HUSKY_DIR="$REPO_ROOT/.husky"
     mkdir -p "$HUSKY_DIR"
 
-    if [ ! -f "$HUSKY_DIR/pre-commit" ]; then
+    BUN_READY=false
+    if command -v bun >/dev/null 2>&1 && bun --version >/dev/null 2>&1 &&
+       command -v bunx >/dev/null 2>&1 && bunx --version >/dev/null 2>&1; then
+        BUN_READY=true
+    fi
+    if [ "$BUN_READY" = "false" ]; then
+        # Keep an existing project hook for a later bootstrap with Bun available.
+        if [ -f "$HUSKY_DIR/pre-commit" ] && ! grep -q '^# atlas identity-only hook$' "$HUSKY_DIR/pre-commit"; then
+            [ ! -e "$HUSKY_DIR/pre-commit.atlas-backup" ] || log_fail "pre-commit backup already exists."
+            mv "$HUSKY_DIR/pre-commit" "$HUSKY_DIR/pre-commit.atlas-backup"
+        fi
+        cat > "$HUSKY_DIR/pre-commit" <<'EOF'
+#!/bin/sh
+# atlas identity-only hook
+exec "$(git rev-parse --show-toplevel)/.husky/identity-guard.sh"
+EOF
+        chmod +x "$HUSKY_DIR/pre-commit"
+    elif [ -f "$HUSKY_DIR/pre-commit.atlas-backup" ]; then
+        mv "$HUSKY_DIR/pre-commit.atlas-backup" "$HUSKY_DIR/pre-commit"
+        chmod +x "$HUSKY_DIR/pre-commit"
+    elif [ ! -f "$HUSKY_DIR/pre-commit" ] || grep -q '^# atlas identity-only hook$' "$HUSKY_DIR/pre-commit"; then
         install_hook_file "${REPO_RAW_ROOT}/.husky/pre-commit" "$HUSKY_DIR/pre-commit" ".husky/pre-commit"
     else
         chmod +x "$HUSKY_DIR/pre-commit" || log_fail "failed to mark existing .husky/pre-commit executable."
@@ -528,12 +588,33 @@ if [ -n "$REPO_ROOT" ]; then
         chmod +x "$HUSKY_DIR/identity-guard.sh" || log_fail "failed to mark existing .husky/identity-guard.sh executable."
     fi
 
-    # activate husky hooks on fresh clones so git invokes .husky/pre-commit
-    if [ -d "$REPO_ROOT/node_modules/husky" ] && command -v bun >/dev/null 2>&1; then
-        (cd "$REPO_ROOT" && bunx husky) >/dev/null 2>&1 || git config --local core.hooksPath .husky
-    elif [ -z "$(git config --local --get core.hooksPath 2>/dev/null || true)" ]; then
-        git config --local core.hooksPath .husky
+    # Preserve paths that reach our hook directly (including symlinks), or
+    # through the standard Husky dispatcher. Repair stale Husky paths only.
+    hooks_path="$(git config --path --get core.hooksPath 2>/dev/null || true)"
+    hooks_reach_guard() {
+        hook_candidate="$hooks_path/pre-commit"
+        case "$hook_candidate" in
+            /*) ;;
+            *) hook_candidate="$REPO_ROOT/$hook_candidate" ;;
+        esac
+        [ -x "$hook_candidate" ] || return 1
+        [ "$hook_candidate" -ef "$HUSKY_DIR/pre-commit" ] && return 0
+        [ "$hook_candidate" -ef "$HUSKY_DIR/_/pre-commit" ] &&
+            [ -x "$HUSKY_DIR/_/h" ] &&
+            grep -qF '. "$(dirname "$0")/h"' "$hook_candidate" &&
+            grep -qF 's=$(dirname "$(dirname "$0")")/$s' "$HUSKY_DIR/_/h" &&
+            grep -qF 'sh -e "$s" "$@"' "$HUSKY_DIR/_/h"
+    }
+    if [ -z "$hooks_path" ] || ! hooks_reach_guard; then
+        case "$hooks_path" in
+            ""|.husky|.husky/_|"$HUSKY_DIR"|"$HUSKY_DIR/_")
+                git config --local core.hooksPath .husky
+                hooks_path=.husky
+                ;;
+            *) log_fail "configured core.hooksPath does not reach the installed identity hook." ;;
+        esac
     fi
+    hooks_reach_guard || log_fail "failed to activate local identity hook."
     log_ok "local identity guard and git hooks active."
 fi
 
