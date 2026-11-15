@@ -18,8 +18,9 @@ if [[ -t 1 && ("${TERM_PROGRAM}" == 'vscode' || "${TERM_PROGRAM}" == 'codespaces
     (sleep 10s; touch "$HOME/.config/vscode-dev-containers/first-run-notice-already-displayed") &!
 fi
 
-# set vs code as git editor only inside integrated terminals (zero startup subprocesses)
-if [[ -z "${GIT_EDITOR}" && "${TERM_PROGRAM}" == 'vscode' ]]; then
+# set vs code as git editor only when no editor is already configured
+if [[ -z "${GIT_EDITOR}" && "${TERM_PROGRAM}" == 'vscode' ]] &&
+   ! git config --get core.editor >/dev/null 2>&1; then
     if (( $+commands[code-insiders] )) && (( ! $+commands[code] )); then
         export GIT_EDITOR='code-insiders --wait'
     elif (( $+commands[code] )); then

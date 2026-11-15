@@ -84,7 +84,7 @@ if command -v apt-get >/dev/null 2>&1; then
 elif command -v apk >/dev/null 2>&1; then
     $SUDO apk add --no-cache zsh git curl jq ca-certificates openssh-client
 elif command -v brew >/dev/null 2>&1; then
-    brew install zsh git curl jq >/dev/null 2>&1 || true
+    brew install zsh git curl jq
 elif command -v dnf >/dev/null 2>&1; then
     $SUDO dnf install -y -q zsh git curl jq ca-certificates
 elif command -v pacman >/dev/null 2>&1; then
@@ -143,7 +143,7 @@ install_config() {
     fi
 }
 
-if [ -f "$HOME/.zshrc" ] && [ ! -L "$HOME/.zshrc" ]; then
+if [ -f "$HOME/.zshrc" ] || [ -L "$HOME/.zshrc" ]; then
     mv "$HOME/.zshrc" "$HOME/.zshrc.backup-$(date +%s)"
 fi
 
@@ -152,7 +152,7 @@ install_config "aliases.sh" "$ZSH_CONFIG_DIR/aliases.sh"
 install_config "starship.toml" "$HOME/.config/starship.toml"
 log_ok "configurations deployed."
 
-# 8. configure login shell handoff (.profile for alpine/sh, .bashrc for debian/bash)
+# 8. configure interactive and login shell handoff
 HANDOFF_SNIPPET='
 # auto-handover interactive shells to zsh
 case "$-" in
@@ -165,7 +165,11 @@ case "$-" in
 esac
 '
 
-for rc_file in "$HOME/.profile" "$HOME/.bashrc"; do
+for rc_file in "$HOME/.profile" "$HOME/.bashrc" "$HOME/.bash_profile" "$HOME/.bash_login"; do
+    # Creating a higher-priority Bash login file would hide existing startup files.
+    case "$rc_file" in
+        "$HOME/.bash_profile"|"$HOME/.bash_login") [ -f "$rc_file" ] || continue ;;
+    esac
     if ! grep -Eq 'exec zsh' "$rc_file" 2>/dev/null; then
         printf "%s\n" "$HANDOFF_SNIPPET" >> "$rc_file"
     fi

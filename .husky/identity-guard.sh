@@ -95,8 +95,8 @@ if [ "$EFFECTIVE_COMMITTER_USER" != "$EXPECTED_NAME" ] || [ "$EFFECTIVE_COMMITTE
   echo "to fix, run 'bun bs' or align user/committer config:"
   echo "   git config user.name \"$EXPECTED_NAME\""
   echo "   git config user.email \"$EXPECTED_EMAIL\""
-  echo "   git config --unset-all committer.name 2>/dev/null || true"
-  echo "   git config --unset-all committer.email 2>/dev/null || true"
+  echo "   git config --local --replace-all committer.name \"$EXPECTED_NAME\""
+  echo "   git config --local --replace-all committer.email \"$EXPECTED_EMAIL\""
   echo ""
   exit 1
 fi

@@ -73,4 +73,7 @@ elif command -v brew >/dev/null 2>&1; then
         fzf \
         git-delta \
         btop
+else
+    printf "[error] unsupported package manager for modern CLI tools (supported: apt-get, apk, brew).\n" >&2
+    exit 1
 fi

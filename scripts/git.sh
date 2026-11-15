@@ -42,6 +42,19 @@ mask_token() {
     fi
 }
 
+# Serialize literal values for the shell-readable secrets cache.
+shell_quote() {
+    printf "'"
+    printf '%s' "$1" | sed "s/'/'\\\\''/g"
+    printf "'"
+}
+
+write_secret() {
+    printf '%s=' "$1"
+    shell_quote "$2"
+    printf '\n'
+}
+
 read_secret() {
     prompt_text="$1"
     saved_stty=""
@@ -270,15 +283,15 @@ if [ "$IS_INTERACTIVE" = "true" ]; then
     case "$(lowercase "$save_choice")" in
         y|yes)
             umask 077
-            cat > "$ATLAS_SECRETS" <<EOF
-GH_TOKEN="$GH_TOKEN"
-GH_OWNER="$GH_OWNER"
-GH_REPO="$GH_REPO"
-GL_TOKEN="$GL_TOKEN"
-GL_NAMESPACE="$GL_NAMESPACE"
-GL_OWNER="$GL_NAMESPACE"
-GL_REPO="$GL_REPO"
-EOF
+            {
+                write_secret GH_TOKEN "$GH_TOKEN"
+                write_secret GH_OWNER "$GH_OWNER"
+                write_secret GH_REPO "$GH_REPO"
+                write_secret GL_TOKEN "$GL_TOKEN"
+                write_secret GL_NAMESPACE "$GL_NAMESPACE"
+                write_secret GL_OWNER "$GL_NAMESPACE"
+                write_secret GL_REPO "$GL_REPO"
+            } > "$ATLAS_SECRETS"
             chmod 600 "$ATLAS_SECRETS"
             log_ok "secrets cached in $ATLAS_SECRETS (mode 0600)."
             ;;
@@ -291,7 +304,6 @@ git config --global --replace-all user.name "$GIT_AUTHOR_NAME"
 git config --global --replace-all user.email "$GIT_AUTHOR_EMAIL"
 git config --global init.defaultBranch main
 git config --global pull.rebase true
-git config --global core.fileMode false
 
 if [ -n "$REPO_ROOT" ]; then
     git config --local --replace-all user.name "$GIT_AUTHOR_NAME"
@@ -586,6 +598,29 @@ EOF
         install_hook_file "${REPO_RAW_ROOT}/.husky/identity-guard.sh" "$HUSKY_DIR/identity-guard.sh" ".husky/identity-guard.sh"
     else
         chmod +x "$HUSKY_DIR/identity-guard.sh" || log_fail "failed to mark existing .husky/identity-guard.sh executable."
+    fi
+
+    # Always put the guard before a project hook, preserving its interpreter
+    # and arguments. Compare the complete wrapper to make reruns idempotent.
+    if [ "$BUN_READY" = "true" ]; then
+        wrapper="$(mktemp "$HUSKY_DIR/pre-commit.tmp.XXXXXX")"
+        cat > "$wrapper" <<'EOF'
+#!/bin/sh
+hook_dir="$(git rev-parse --show-toplevel)/.husky"
+"$hook_dir/identity-guard.sh" || exit $?
+exec "$hook_dir/pre-commit.atlas-project" "$@"
+EOF
+        if ! cmp -s "$wrapper" "$HUSKY_DIR/pre-commit"; then
+            if [ -e "$HUSKY_DIR/pre-commit.atlas-project" ]; then
+                rm -f "$wrapper"
+                log_fail "project hook backup already exists; cannot safely wrap pre-commit."
+            fi
+            # Copy into the same inode to preserve configured symlink hook paths.
+            cp -p "$HUSKY_DIR/pre-commit" "$HUSKY_DIR/pre-commit.atlas-project"
+            cat "$wrapper" > "$HUSKY_DIR/pre-commit"
+        fi
+        rm -f "$wrapper"
+        chmod +x "$HUSKY_DIR/pre-commit"
     fi
 
     # Preserve paths that reach our hook directly (including symlinks), or
