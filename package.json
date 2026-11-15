@@ -3,8 +3,7 @@
     "f": "oxfmt --write .",
     "f:check": "oxfmt --check .",
     "prepare": "test -d .git && husky || true",
-    "bs": "chmod +x scripts/bootstrap.sh && scripts/bootstrap.sh",
-    "upd": "apt update && apt upgrade -y && bun upgrade && bun update --latest && bun i && bun f"
+    "bs": "chmod +x scripts/git.sh && scripts/git.sh"
   },
   "dependencies": {},
   "devDependencies": {

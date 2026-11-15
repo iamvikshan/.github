@@ -121,11 +121,11 @@ if [[ "$IS_INTERACTIVE" == "true" ]]; then
     echo -e "  5) GitLab Namespace:  ${GL_NAMESPACE}"
     echo -e "  6) GitLab Repo:       ${GL_REPO}"
     echo ""
-    
+
     # </dev/tty is CRITICAL for 'curl | bash' compatibility
     read -p "Accept all [A] or enter a number to edit (1-6): " choice < /dev/tty
     choice=${choice:-A}
-    
+
     case "$(lowercase "$choice")" in
       a|accept) break ;;
       1) read -sp "Enter GitHub Token: " GH_TOKEN < /dev/tty; echo ;;
@@ -352,10 +352,10 @@ echo -e "✓ GitHub push remote configured (${GH_OWNER}/${GH_REPO})."
 if [[ -n "$GL_TOKEN" && "$(lowercase "$GL_NAMESPACE")" != "skip" ]]; then
   GL_URL="gitlab.com/${GL_NAMESPACE}/${GL_REPO}.git"
   GL_REMOTE="https://oauth2:${GL_TOKEN}@${GL_URL}"
-  
+
   git remote set-url --add --push origin "$GL_REMOTE"
   echo -e "✓ GitLab push remote configured (${GL_NAMESPACE}/${GL_REPO})."
-  
+
   enable_gitlab_force_push
 else
   echo -e "✓ Skipping GitLab remote configuration (No token provided or skipped)."
@@ -378,17 +378,7 @@ fi
 # Ensure husky hooks are set up
 mkdir -p .husky
 if [ ! -f ".husky/pre-commit" ]; then
-  cat > .husky/pre-commit << 'EOF'
-#!/usr/bin/env sh
-set -e
-
-# 1. Enforce global identity (instant execution)
- ./.husky/identity-guard.sh
-
-# 2. Run staged formatting and linting
-echo "Running OXC checks..."
-bunx lint-staged
-EOF
+  curl -sL https://raw.githubusercontent.com/iamvikshan/.github/main/.husky/pre-commit > .husky/pre-commit 2>/dev/null || true
   chmod +x .husky/pre-commit 2>/dev/null || true
   echo -e "✓ Created .husky/pre-commit hook."
 else
@@ -400,17 +390,15 @@ echo -e "\n--- Local Identity Guard ---"
 if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   git config --local atlas.expected-name "$GIT_AUTHOR_NAME"
   git config --local atlas.expected-email "$GIT_AUTHOR_EMAIL"
+  echo -e "✓ Expected identity stored in local git config."
 fi
-
-mkdir -p .husky
-if [ -f "scripts/husky/identity-guard.sh" ]; then
-  cp scripts/husky/identity-guard.sh .husky/identity-guard.sh 2>/dev/null || true
+# Ensure the canonical guard is executable (.husky/identity-guard.sh is tracked in git)
+if [ -f ".husky/identity-guard.sh" ]; then
   chmod +x .husky/identity-guard.sh 2>/dev/null || true
-  echo -e "✓ Identity guard payload installed from local scripts."
 else
-  curl -sL https://raw.githubusercontent.com/iamvikshan/.github/main/scripts/husky/identity-guard.sh > .husky/identity-guard.sh 2>/dev/null || true
+  curl -sL https://raw.githubusercontent.com/iamvikshan/.github/main/.husky/identity-guard.sh > .husky/identity-guard.sh 2>/dev/null || true
   chmod +x .husky/identity-guard.sh 2>/dev/null || true
-  echo -e "✓ Identity guard payload fetched and installed."
+  echo -e "✓ Identity guard fetched from canonical source."
 fi
 
 # 10. Final Summary
