@@ -576,18 +576,19 @@ if [ -n "$REPO_ROOT" ]; then
             [ ! -e "$HUSKY_DIR/pre-commit.atlas-backup" ] || log_fail "pre-commit backup already exists."
             mv "$HUSKY_DIR/pre-commit" "$HUSKY_DIR/pre-commit.atlas-backup"
         fi
-        cat > "$HUSKY_DIR/pre-commit" <<'EOF'
+        identity_hook="$(mktemp "$HUSKY_DIR/pre-commit.tmp.XXXXXX")"
+        cat > "$identity_hook" <<'EOF'
 #!/bin/sh
 # atlas identity-only hook
 exec "$(git rev-parse --show-toplevel)/.husky/identity-guard.sh"
 EOF
-        chmod +x "$HUSKY_DIR/pre-commit"
+        chmod +x "$identity_hook"
+        mv -f "$identity_hook" "$HUSKY_DIR/pre-commit"
     elif [ -f "$HUSKY_DIR/pre-commit.atlas-backup" ]; then
         mv "$HUSKY_DIR/pre-commit.atlas-backup" "$HUSKY_DIR/pre-commit"
-        chmod +x "$HUSKY_DIR/pre-commit"
     elif [ ! -f "$HUSKY_DIR/pre-commit" ] || grep -q '^# atlas identity-only hook$' "$HUSKY_DIR/pre-commit"; then
         install_hook_file "${REPO_RAW_ROOT}/.husky/pre-commit" "$HUSKY_DIR/pre-commit" ".husky/pre-commit"
-    else
+    elif [ ! -L "$HUSKY_DIR/pre-commit" ]; then
         chmod +x "$HUSKY_DIR/pre-commit" || log_fail "failed to mark existing .husky/pre-commit executable."
     fi
 
@@ -611,16 +612,22 @@ hook_dir="$(git rev-parse --show-toplevel)/.husky"
 exec "$hook_dir/pre-commit.atlas-project" "$@"
 EOF
         if ! cmp -s "$wrapper" "$HUSKY_DIR/pre-commit"; then
-            if [ -e "$HUSKY_DIR/pre-commit.atlas-project" ]; then
+            if [ -e "$HUSKY_DIR/pre-commit.atlas-project" ] || [ -L "$HUSKY_DIR/pre-commit.atlas-project" ]; then
                 rm -f "$wrapper"
                 log_fail "project hook backup already exists; cannot safely wrap pre-commit."
             fi
-            # Copy into the same inode to preserve configured symlink hook paths.
             cp -p "$HUSKY_DIR/pre-commit" "$HUSKY_DIR/pre-commit.atlas-project"
-            cat "$wrapper" > "$HUSKY_DIR/pre-commit"
+            chmod +x "$HUSKY_DIR/pre-commit.atlas-project"
         fi
-        rm -f "$wrapper"
-        chmod +x "$HUSKY_DIR/pre-commit"
+        if [ ! -f "$HUSKY_DIR/pre-commit.atlas-project" ] ||
+           [ ! -x "$HUSKY_DIR/pre-commit.atlas-project" ] ||
+           [ "$HUSKY_DIR/pre-commit.atlas-project" -ef "$HUSKY_DIR/pre-commit" ]; then
+            rm -f "$wrapper"
+            log_fail "project hook backup missing or invalid; restore an executable .husky/pre-commit.atlas-project, or replace .husky/pre-commit with the original project hook and rerun setup."
+        fi
+        # Replace the local directory entry, leaving any shared symlink target intact.
+        chmod +x "$wrapper"
+        mv -f "$wrapper" "$HUSKY_DIR/pre-commit"
     fi
 
     # Preserve paths that reach our hook directly (including symlinks), or
