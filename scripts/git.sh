@@ -29,60 +29,6 @@ lowercase() {
     printf '%s' "$1" | tr '[:upper:]' '[:lower:]'
 }
 
-mask_token() {
-    tok="$1"
-    if [ -z "$tok" ]; then
-        printf "(empty)"
-    elif [ "${#tok}" -le 8 ]; then
-        printf "********"
-    else
-        first="$(printf '%s' "$tok" | cut -c1-4)"
-        last="$(printf '%s' "$tok" | awk '{print substr($0, length($0)-3)}')"
-        printf "%s********%s" "$first" "$last"
-    fi
-}
-
-# Serialize literal values for the shell-readable secrets cache.
-shell_quote() {
-    printf "'"
-    printf '%s' "$1" | sed "s/'/'\\\\''/g"
-    printf "'"
-}
-
-write_secret() {
-    printf '%s=' "$1"
-    shell_quote "$2"
-    printf '\n'
-}
-
-read_secret() {
-    prompt_text="$1"
-    saved_stty=""
-    if [ -r /dev/tty ]; then
-        saved_stty="$(stty -g < /dev/tty 2>/dev/null || true)"
-    fi
-
-    restore_tty() {
-        if [ -n "${saved_stty:-}" ]; then
-            stty "$saved_stty" < /dev/tty 2>/dev/null || true
-        fi
-    }
-
-    trap 'restore_tty; printf "\n" >&2; exit 130' INT TERM HUP
-    printf "%s" "$prompt_text"
-    stty -echo < /dev/tty 2>/dev/null || true
-
-    read_rc=0
-    if ! read -r SECRET_INPUT < /dev/tty; then
-        read_rc=1
-    fi
-
-    restore_tty
-    printf "\n"
-    trap - INT TERM HUP
-    return "$read_rc"
-}
-
 extract_forge_coords() {
     raw_url="$1"
     clean_url="${raw_url%/}"
@@ -132,7 +78,7 @@ extract_forge_coords() {
     esac
 }
 
-# 1. standalone fallback for interactive mode, host_id, and ~/.atlasrc
+# 1. standalone execution mode and host identity
 FORCE_DEFAULT=false
 TRUST_ONLY=false
 for arg in "$@"; do
@@ -175,47 +121,23 @@ fi
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || true)"
 [ "$TRUST_ONLY" = "false" ] || exit 0
 
-# 2. secret & context waterfall (~/.atlasrc + local .env)
-ATLAS_SECRETS="${ATLAS_SECRETS:-$HOME/.atlasrc}"
-ENV_GH_TOKEN="${GH_TOKEN:-}"
-ENV_GL_TOKEN="${GL_TOKEN:-}"
-
-if [ -f "$ATLAS_SECRETS" ]; then
-    log_info "loading cached secrets from $ATLAS_SECRETS"
-    set -a
-    # shellcheck disable=SC1090
-    . "$ATLAS_SECRETS"
-    set +a
-fi
-
-[ -n "$ENV_GH_TOKEN" ] && GH_TOKEN="$ENV_GH_TOKEN"
-[ -n "$ENV_GL_TOKEN" ] && GL_TOKEN="$ENV_GL_TOKEN"
+# 2. credentials come only from the calling environment; never cache secrets.
 GH_TOKEN="${GH_TOKEN:-}"
 GL_TOKEN="${GL_TOKEN:-}"
-
-ENV_FILE="${CALLER_DIR:-$PWD}/.env"
-if [ -f "$ENV_FILE" ]; then
-    if [ -z "$GH_TOKEN" ]; then
-        GH_TOKEN="$(grep -E '^GH_TOKEN=' "$ENV_FILE" | head -n 1 | cut -d '=' -f2- | tr -d "\"'" || true)"
-    fi
-    if [ -z "$GL_TOKEN" ]; then
-        GL_TOKEN="$(grep -E '^GL_TOKEN=' "$ENV_FILE" | head -n 1 | cut -d '=' -f2- | tr -d "\"'" || true)"
-    fi
-fi
-export GH_TOKEN GL_TOKEN ATLAS_SECRETS
+export GH_TOKEN GL_TOKEN
 
 # 3. repository context
 
 case "${GH_OWNER:-}${GH_REPO:-}" in
     *[:/]*)
-        log_warn "malformed github coordinates in cache; resetting to defaults."
+        log_warn "malformed github coordinates; resetting to defaults."
         GH_OWNER=""
         GH_REPO=""
         ;;
 esac
 case "${GL_NAMESPACE:-}${GL_REPO:-}" in
     *:*)
-        log_warn "malformed gitlab coordinates in cache; resetting to defaults."
+        log_warn "malformed gitlab coordinates; resetting to defaults."
         GL_NAMESPACE=""
         GL_REPO=""
         ;;
@@ -240,66 +162,30 @@ fi
 if [ "$IS_INTERACTIVE" = "true" ]; then
     printf "\n${CYAN}--- git & forge configuration review ---${NC}\n"
     while true; do
-        printf "  1) github token:     %s\n" "$(mask_token "$GH_TOKEN")"
-        printf "  2) github owner:     %s\n" "$GH_OWNER"
-        printf "  3) github repo:      %s\n" "$GH_REPO"
-        printf "  4) gitlab token:     %s\n" "$(mask_token "$GL_TOKEN")"
-        printf "  5) gitlab namespace: %s\n" "$GL_NAMESPACE"
-        printf "  6) gitlab repo:      %s\n\n" "$GL_REPO"
+        printf "  github token:       %s\n" "${GH_TOKEN:+set}"
+        printf "  1) github owner:     %s\n" "$GH_OWNER"
+        printf "  2) github repo:      %s\n" "$GH_REPO"
+        printf "  gitlab token:       %s\n" "${GL_TOKEN:+set}"
+        printf "  3) gitlab namespace: %s\n" "$GL_NAMESPACE"
+        printf "  4) gitlab repo:      %s\n\n" "$GL_REPO"
 
-        printf "accept all [A] or enter a number to edit (1-6): "
+        printf "accept all [A] or edit coordinates (1-4): "
         read -r choice < /dev/tty
         choice="${choice:-A}"
 
         case "$(lowercase "$choice")" in
             a|accept) break ;;
-            1)
-                if read_secret "enter github token: "; then
-                    GH_TOKEN="$SECRET_INPUT"
-                else
-                    log_warn "token input aborted (eof); keeping existing value."
-                fi
-                unset SECRET_INPUT
-                ;;
-            2) printf "enter github owner: "; read -r GH_OWNER < /dev/tty ;;
-            3) printf "enter github repo: "; read -r GH_REPO < /dev/tty ;;
-            4)
-                if read_secret "enter gitlab token: "; then
-                    GL_TOKEN="$SECRET_INPUT"
-                else
-                    log_warn "token input aborted (eof); keeping existing value."
-                fi
-                unset SECRET_INPUT
-                ;;
-            5) printf "enter gitlab namespace (type SKIP to ignore): "; read -r GL_NAMESPACE < /dev/tty ;;
-            6) printf "enter gitlab repo: "; read -r GL_REPO < /dev/tty ;;
+            1) printf "enter github owner: "; read -r GH_OWNER < /dev/tty ;;
+            2) printf "enter github repo: "; read -r GH_REPO < /dev/tty ;;
+            3) printf "enter gitlab namespace (type SKIP to ignore): "; read -r GL_NAMESPACE < /dev/tty ;;
+            4) printf "enter gitlab repo: "; read -r GL_REPO < /dev/tty ;;
             *) log_warn "invalid choice." ;;
         esac
     done
-
-    printf "\nsave configuration to %s? [Y/n]: " "$ATLAS_SECRETS"
-    read -r save_choice < /dev/tty
-    save_choice="${save_choice:-Y}"
-    case "$(lowercase "$save_choice")" in
-        y|yes)
-            umask 077
-            {
-                write_secret GH_TOKEN "$GH_TOKEN"
-                write_secret GH_OWNER "$GH_OWNER"
-                write_secret GH_REPO "$GH_REPO"
-                write_secret GL_TOKEN "$GL_TOKEN"
-                write_secret GL_NAMESPACE "$GL_NAMESPACE"
-                write_secret GL_OWNER "$GL_NAMESPACE"
-                write_secret GL_REPO "$GL_REPO"
-            } > "$ATLAS_SECRETS"
-            chmod 600 "$ATLAS_SECRETS"
-            log_ok "secrets cached in $ATLAS_SECRETS (mode 0600)."
-            ;;
-    esac
 fi
 
-# 5. global & local git identity reconciliation, ntfs filemode guard & delta pager
-log_info "configuring git identity, ntfs compatibility, and delta pager..."
+# 5. global & local git identity reconciliation, delta pager
+log_info "configuring git identity and delta pager..."
 git config --global --replace-all user.name "$GIT_AUTHOR_NAME"
 git config --global --replace-all user.email "$GIT_AUTHOR_EMAIL"
 git config --global init.defaultBranch main
@@ -312,7 +198,6 @@ if [ -n "$REPO_ROOT" ]; then
         git config --local --replace-all "$role.name" "$GIT_AUTHOR_NAME"
         git config --local --replace-all "$role.email" "$GIT_AUTHOR_EMAIL"
     done
-    git config --local core.fileMode false
 fi
 
 if command -v delta >/dev/null 2>&1; then
@@ -347,17 +232,6 @@ while IFS='=' read -r key val; do
     [ "$key" = "host" ] && host="$val"
 done
 
-cache_path="${ATLAS_SECRETS:-$(git config --global --get atlas.secrets-file 2>/dev/null || true)}"
-cache_path="${cache_path:-$HOME/.atlasrc}"
-# Environment credentials take precedence over cached credentials.
-if { [ "$host" = github.com ] && [ -z "${GH_TOKEN:-}" ]; } ||
-   { [ "$host" = gitlab.com ] && [ -z "${GL_TOKEN:-}" ]; }; then
-    if [ -f "$cache_path" ]; then
-        # shellcheck disable=SC1090
-        . "$cache_path"
-    fi
-fi
-
 case "$host" in
     github.com)
         if [ -n "${GH_TOKEN:-}" ]; then
@@ -372,13 +246,6 @@ case "$host" in
 esac
 EOF
 chmod 700 "$CRED_HELPER"
-# Persist only the cache location for future helper processes.
-case "$ATLAS_SECRETS" in
-    /*) ;;
-    *) ATLAS_SECRETS="$PWD/$ATLAS_SECRETS" ;;
-esac
-git config --global atlas.secrets-file "$ATLAS_SECRETS"
-
 git config --global --replace-all credential.https://github.com.helper "$CRED_HELPER"
 git config --global --replace-all credential.https://gitlab.com.helper "$CRED_HELPER"
 log_ok "credential helper bound (zero plaintext tokens in .git/config)."
@@ -418,12 +285,35 @@ fi
 # 8. register ssh signing key via forge apis & prune overflow
 PUB_KEY="$(cat "${KEY_PATH}.pub")"
 
+forge_curl() {
+    forge="$1"
+    shift
+    case "$forge" in
+        github) auth_header="Authorization: Bearer $GH_TOKEN" ;;
+        gitlab) auth_header="PRIVATE-TOKEN: $GL_TOKEN" ;;
+    esac
+    case "$auth_header" in
+        *[![:print:]]*|*'"'*|*'\'*) log_warn "invalid token characters" >&2; return 1 ;;
+    esac
+    printf 'header = "%s"\n' "$auth_header" | curl --config - "$@"
+}
+
+# Fetch every page before deleting anything, so failed/partial lists cannot prune.
+list_keys() {
+    forge="$1"; endpoint="$2"; page=1; all_keys='[]'
+    while :; do
+        batch="$(forge_curl "$forge" -fsS "$endpoint?per_page=100&page=$page")" || return 1
+        printf '%s' "$batch" | jq -e 'type == "array"' >/dev/null || return 1
+        all_keys="$(printf '%s\n%s' "$all_keys" "$batch" | jq -sc '.[0] + .[1]')" || return 1
+        [ "$(printf '%s' "$batch" | jq length)" -eq 100 ] || break
+        page=$((page + 1))
+    done
+    printf '%s' "$all_keys"
+}
+
 prune_github_keys() {
     command -v jq >/dev/null 2>&1 || return 0
-    if ! keys_json="$(curl -s -H "Accept: application/vnd.github+json" \
-        -H "Authorization: Bearer $GH_TOKEN" \
-        -H "X-GitHub-Api-Version: 2022-11-28" \
-        https://api.github.com/user/ssh_signing_keys)"; then
+    if ! keys_json="$(list_keys github https://api.github.com/user/ssh_signing_keys)"; then
         log_warn "failed to list github signing keys; skipping pruning."
         return 0
     fi
@@ -434,9 +324,8 @@ prune_github_keys() {
         log_warn "pruning oldest $delete_count github signing keys..."
         old_keys="$(printf '%s' "$keys_json" | jq -r "sort_by(.created_at) | .[0:${delete_count}] | .[].id")"
         for key_id in $old_keys; do
-            curl -s -o /dev/null -X DELETE \
+            forge_curl github -fsS -o /dev/null -X DELETE \
                 -H "Accept: application/vnd.github+json" \
-                -H "Authorization: Bearer $GH_TOKEN" \
                 -H "X-GitHub-Api-Version: 2022-11-28" \
                 "https://api.github.com/user/ssh_signing_keys/${key_id}" || log_warn "failed to delete github signing key."
         done
@@ -445,7 +334,7 @@ prune_github_keys() {
 
 prune_gitlab_keys() {
     command -v jq >/dev/null 2>&1 || return 0
-    if ! keys_json="$(curl -s --header "PRIVATE-TOKEN: $GL_TOKEN" "https://gitlab.com/api/v4/user/keys")"; then
+    if ! keys_json="$(list_keys gitlab https://gitlab.com/api/v4/user/keys)"; then
         log_warn "failed to list gitlab signing keys; skipping pruning."
         return 0
     fi
@@ -456,8 +345,7 @@ prune_gitlab_keys() {
         log_warn "pruning oldest $delete_count gitlab signing keys..."
         old_keys="$(printf '%s' "$keys_json" | jq -r "[.[] | select(.usage_type == \"signing\")] | sort_by(.created_at) | .[0:${delete_count}] | .[].id")"
         for key_id in $old_keys; do
-            curl -s -o /dev/null -X DELETE \
-                --header "PRIVATE-TOKEN: $GL_TOKEN" \
+            forge_curl gitlab -s -o /dev/null -X DELETE \
                 "https://gitlab.com/api/v4/user/keys/${key_id}" || log_warn "failed to delete gitlab signing key."
         done
     fi
@@ -466,7 +354,7 @@ prune_gitlab_keys() {
 enable_gitlab_force_push() {
     [ -n "$GL_TOKEN" ] && command -v jq >/dev/null 2>&1 || return 0
     encoded_project="$(printf '%s/%s' "$GL_NAMESPACE" "$GL_REPO" | sed 's|/|%2F|g')"
-    project_id="$(curl -s --header "PRIVATE-TOKEN: $GL_TOKEN" \
+    project_id="$(forge_curl gitlab -s \
         "https://gitlab.com/api/v4/projects/${encoded_project}" 2>/dev/null | jq -r '.id // empty' 2>/dev/null || true)"
 
     if [ -z "$project_id" ]; then
@@ -474,16 +362,14 @@ enable_gitlab_force_push() {
         return 0
     fi
 
-    curl -s -o /dev/null -X PATCH \
-        --header "PRIVATE-TOKEN: $GL_TOKEN" \
+    forge_curl gitlab -s -o /dev/null -X PATCH \
         "https://gitlab.com/api/v4/projects/${project_id}/protected_branches/main?allow_force_push=true" || true
 }
 
 if [ -n "$GH_TOKEN" ]; then
-    if HTTP_STATUS="$(curl -s -o /dev/null -w "%{http_code}" \
+    if HTTP_STATUS="$(forge_curl github -s -o /dev/null -w "%{http_code}" \
         -X POST \
         -H "Accept: application/vnd.github+json" \
-        -H "Authorization: Bearer $GH_TOKEN" \
         -H "X-GitHub-Api-Version: 2022-11-28" \
         https://api.github.com/user/ssh_signing_keys \
         -d "{\"title\":\"${KEY_NAME}\",\"key\":\"${PUB_KEY}\"}")"; then
@@ -503,9 +389,8 @@ if [ -n "$GH_TOKEN" ]; then
 fi
 
 if [ -n "$GL_TOKEN" ] && [ "$(lowercase "$GL_NAMESPACE")" != "skip" ]; then
-    if HTTP_STATUS="$(curl -s -o /dev/null -w "%{http_code}" \
+    if HTTP_STATUS="$(forge_curl gitlab -s -o /dev/null -w "%{http_code}" \
         -X POST \
-        --header "PRIVATE-TOKEN: $GL_TOKEN" \
         --header "Content-Type: application/json" \
         -d "{\"title\":\"${KEY_NAME}\",\"key\":\"${PUB_KEY}\",\"usage_type\":\"signing\"}" \
         "https://gitlab.com/api/v4/user/keys")"; then
@@ -580,10 +465,6 @@ if [ -n "$REPO_ROOT" ]; then
     mkdir -p "$HUSKY_DIR"
     [ ! -d "$HOOK" ] || log_fail ".husky/pre-commit is a directory; move it aside and rerun setup."
 
-    # one-time migration from the old wrapper scheme (delete after your repos are re-run)
-    [ ! -f "$HOOK.atlas-project" ] || mv -f "$HOOK.atlas-project" "$HOOK"
-    [ ! -f "$HOOK.atlas-backup" ]  || mv -f "$HOOK.atlas-backup" "$HOOK"
-
     git config --local atlas.expected-name "$GIT_AUTHOR_NAME"
     git config --local atlas.expected-email "$GIT_AUTHOR_EMAIL"
 
@@ -598,11 +479,20 @@ if [ -n "$REPO_ROOT" ]; then
     fi
 
     # pre-commit: never overwrite; make sure it calls the guard
-    if [ ! -e "$HOOK" ]; then
+    if [ ! -e "$HOOK" ] && [ ! -L "$HOOK" ]; then
         printf '#!/usr/bin/env sh\nset -e\n%s\n' "$GUARD_CALL" > "$HOOK"
         chmod +x "$HOOK"
         log_ok "created .husky/pre-commit with identity guard."
-    elif grep -v '^[[:space:]]*#' "$HOOK" | grep -q 'identity-guard\.sh'; then
+    elif awk '
+        /^[[:space:]]*set -e[[:space:]]*$/ { errexit = 1; next }
+        /^[[:space:]]*set \+e[[:space:]]*$/ { errexit = 0; next }
+        {
+            line = $0
+            exits = sub(/[[:space:]]+\|\| exit \$\?[[:space:]]*$/, "", line)
+            if (line ~ /^[[:space:]]*sh[[:space:]]+([^[:space:]]*identity-guard\.sh|".*identity-guard\.sh")[[:space:]]*$/ && (errexit || exits)) protected = 1
+        }
+        END { exit !protected }
+    ' "$HOOK"; then
         log_ok "pre-commit already calls the identity guard."
     else
         [ ! -L "$HOOK" ] ||
@@ -630,9 +520,9 @@ if [ -n "$REPO_ROOT" ]; then
         mv -f "$tmp" "$HOOK"
         log_ok "added identity guard call to existing pre-commit."
     fi
-    [ -x "$HOOK" ] || chmod +x "$HOOK" || log_fail "failed to mark .husky/pre-commit executable."
+    [ -L "$HOOK" ] || [ -x "$HOOK" ] || chmod +x "$HOOK" || log_fail "failed to mark .husky/pre-commit executable."
 
-    # hooksPath: keep your existing logic, with $HOOK in place of the old paths
+    # Ensure the configured hooks directory reaches the identity guard.
     hooks_path="$(git config --path --get core.hooksPath 2>/dev/null || true)"
     hooks_reach_guard() {
         hook_candidate="$hooks_path/pre-commit"

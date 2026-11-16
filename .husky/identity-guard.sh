@@ -19,53 +19,23 @@ if [ -z "$EXPECTED_NAME" ] || [ -z "$EXPECTED_EMAIL" ]; then
   exit 1
 fi
 
-# resolve effective author identity (env vars > author.* > user.*)
-# use ${VAR-default} (no colon) so explicitly empty env vars are preserved,
-# not silently replaced — git rejects empty identities with "empty ident".
-CONFIG_USER=$(git config user.name 2>/dev/null || printf '')
-CONFIG_EMAIL=$(git config user.email 2>/dev/null || printf '')
-CONFIG_AUTHOR_USER=$(git config author.name 2>/dev/null || printf '%s' "$CONFIG_USER")
-CONFIG_AUTHOR_EMAIL=$(git config author.email 2>/dev/null || printf '%s' "$CONFIG_EMAIL")
-EFFECTIVE_USER="${GIT_AUTHOR_NAME-$CONFIG_AUTHOR_USER}"
-EFFECTIVE_EMAIL="${GIT_AUTHOR_EMAIL-$CONFIG_AUTHOR_EMAIL}"
-
-# report explicitly empty GIT_AUTHOR_* early so the user gets a clear error
-# instead of git's opaque "empty ident name (or email address) not allowed"
-if [ -z "$EFFECTIVE_USER" ] && [ "${GIT_AUTHOR_NAME+set}" = "set" ]; then
-  echo "[error] GIT_AUTHOR_NAME is set but empty — git will reject the commit."
-  echo "   unset it first:  unset GIT_AUTHOR_NAME"
+# Let Git resolve and validate both identities, including environment overrides.
+if ! AUTHOR_IDENT=$(git var GIT_AUTHOR_IDENT 2>/dev/null); then
+  echo "[error] git cannot resolve a valid author identity."
+  echo "   check user/author config and GIT_AUTHOR_NAME/EMAIL."
   exit 1
 fi
-if [ -z "$EFFECTIVE_EMAIL" ] && [ "${GIT_AUTHOR_EMAIL+set}" = "set" ]; then
-  echo "[error] GIT_AUTHOR_EMAIL is set but empty — git will reject the commit."
-  echo "   unset it first:  unset GIT_AUTHOR_EMAIL"
+if ! COMMITTER_IDENT=$(git var GIT_COMMITTER_IDENT 2>/dev/null); then
+  echo "[error] git cannot resolve a valid committer identity."
+  echo "   check user/committer config and GIT_COMMITTER_NAME/EMAIL."
   exit 1
 fi
-
-# resolve effective committer identity through git (GIT_COMMITTER_* > committer.* > user.*)
-COMMITTER_IDENT=$(git var GIT_COMMITTER_IDENT 2>/dev/null || true)
-if [ -n "$COMMITTER_IDENT" ]; then
-  EFFECTIVE_COMMITTER_USER="${COMMITTER_IDENT%% <*}"
-  _ident_rest="${COMMITTER_IDENT#*<}"
-  EFFECTIVE_COMMITTER_EMAIL="${_ident_rest%%>*}"
-else
-  CONFIG_COMMITTER_USER=$(git config committer.name 2>/dev/null || printf '%s' "$CONFIG_USER")
-  CONFIG_COMMITTER_EMAIL=$(git config committer.email 2>/dev/null || printf '%s' "$CONFIG_EMAIL")
-  # use ${VAR-default} (no colon) to preserve explicitly empty env vars
-  EFFECTIVE_COMMITTER_USER="${GIT_COMMITTER_NAME-$CONFIG_COMMITTER_USER}"
-  EFFECTIVE_COMMITTER_EMAIL="${GIT_COMMITTER_EMAIL-$CONFIG_COMMITTER_EMAIL}"
-  # report explicitly empty GIT_COMMITTER_* early for a clear error message
-  if [ -z "$EFFECTIVE_COMMITTER_USER" ] && [ "${GIT_COMMITTER_NAME+set}" = "set" ]; then
-    echo "[error] GIT_COMMITTER_NAME is set but empty — git will reject the commit."
-    echo "   unset it first:  unset GIT_COMMITTER_NAME"
-    exit 1
-  fi
-  if [ -z "$EFFECTIVE_COMMITTER_EMAIL" ] && [ "${GIT_COMMITTER_EMAIL+set}" = "set" ]; then
-    echo "[error] GIT_COMMITTER_EMAIL is set but empty — git will reject the commit."
-    echo "   unset it first:  unset GIT_COMMITTER_EMAIL"
-    exit 1
-  fi
-fi
+EFFECTIVE_USER="${AUTHOR_IDENT%% <*}"
+_ident_rest="${AUTHOR_IDENT#*<}"
+EFFECTIVE_EMAIL="${_ident_rest%%>*}"
+EFFECTIVE_COMMITTER_USER="${COMMITTER_IDENT%% <*}"
+_ident_rest="${COMMITTER_IDENT#*<}"
+EFFECTIVE_COMMITTER_EMAIL="${_ident_rest%%>*}"
 
 if [ "$EFFECTIVE_USER" != "$EXPECTED_NAME" ] || [ "$EFFECTIVE_EMAIL" != "$EXPECTED_EMAIL" ]; then
   echo "[error] git author identity mismatch!"
