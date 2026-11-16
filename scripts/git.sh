@@ -564,6 +564,8 @@ install_hook_file() {
 if [ -n "$REPO_ROOT" ]; then
     HUSKY_DIR="$REPO_ROOT/.husky"
     mkdir -p "$HUSKY_DIR"
+    [ ! -d "$HUSKY_DIR/pre-commit" ] ||
+        log_fail ".husky/pre-commit is a directory; move it aside and rerun setup."
 
     BUN_READY=false
     if command -v bun >/dev/null 2>&1 && bun --version >/dev/null 2>&1 &&
@@ -639,7 +641,7 @@ EOF
             /*) ;;
             *) hook_candidate="$REPO_ROOT/$hook_candidate" ;;
         esac
-        [ -x "$hook_candidate" ] || return 1
+        [ -f "$hook_candidate" ] && [ -x "$hook_candidate" ] || return 1
         [ "$hook_candidate" -ef "$HUSKY_DIR/pre-commit" ] && return 0
         [ "$hook_candidate" -ef "$HUSKY_DIR/_/pre-commit" ] &&
             [ -x "$HUSKY_DIR/_/h" ] &&
