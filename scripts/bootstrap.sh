@@ -181,7 +181,8 @@ CURRENT_USER="${USER:-$(id -un)}"
 # ensure zsh path is whitelisted in /etc/shells before chsh (prevents macos/pam login lockout)
 if [ -f /etc/shells ] && ! grep -qxF "$ZSH_PATH" /etc/shells 2>/dev/null; then
     if [ -w /etc/shells ] || [ -n "$SUDO" ]; then
-        printf '%s\n' "$ZSH_PATH" | $SUDO tee -a /etc/shells >/dev/null
+        printf '\n%s\n' "$ZSH_PATH" | $SUDO tee -a /etc/shells >/dev/null || \
+            log_warn "could not register $ZSH_PATH in /etc/shells."
     fi
 fi
 

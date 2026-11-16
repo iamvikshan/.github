@@ -120,10 +120,10 @@ fi
 
 # compile zsh configs and plugins to bytecode (.zwc) in background when newer than cache
 {
-  autoload -Uz zcompile
-  local _zfile
+  typeset _zfile
   for _zfile in \
     "$HOME/.zshrc" \
+    "$ZSH_PLUGIN_DIR/fzf-tab/fzf-tab.plugin.zsh" \
     "$HOME/.config/zsh/aliases.sh" \
     "$HOME/.local/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh" \
     "$HOME/.local/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"; do

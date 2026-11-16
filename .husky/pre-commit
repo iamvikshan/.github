@@ -5,5 +5,6 @@ if command -v bunx >/dev/null 2>&1; then
   echo "Running OXC checks..."
   bunx lint-staged
 else
-  echo "[warn] bunx not found; skipping lint-staged" >&2
+  echo "[error] bunx not found; install Bun to run lint-staged" >&2
+  exit 1
 fi
