@@ -544,96 +544,95 @@ else
     log_warn "skipping remote updates due to unmatched or incomplete repository coordinates."
 fi
 
-# 10. husky hooks & local identity guard at worktree root
-install_hook_file() {
-    url="$1"
-    dest="$2"
-    label="$3"
-    tmp_hook="$(mktemp "${dest}.tmp.XXXXXX")"
-    if ! curl -fsSL "$url" -o "$tmp_hook" || [ ! -s "$tmp_hook" ]; then
-        rm -f "$tmp_hook"
-        log_fail "failed to download $label from $url."
+# 10. husky: identity guard (always refreshed) + one guard call in pre-commit
+GUARD_CALL='sh "$(git rev-parse --show-toplevel)/.husky/identity-guard.sh" || exit $?'
+
+# returns 1 on any failure and never exits, so the caller decides
+fetch_executable() {
+    url="$1"; dest="$2"; label="$3"
+    tmp="$(mktemp "${dest}.tmp.XXXXXX")" || return 1
+    if curl -fsSL --max-time 30 "$url" -o "$tmp" &&
+       [ -s "$tmp" ] &&
+       head -n 1 "$tmp" | grep -q '^#!' &&
+       sh -n "$tmp" &&
+       chmod +x "$tmp" &&
+       mv -f "$tmp" "$dest"; then
+        return 0
     fi
-    if ! chmod +x "$tmp_hook" || ! mv "$tmp_hook" "$dest"; then
-        rm -f "$tmp_hook"
-        log_fail "failed to install executable $label at $dest."
-    fi
-    log_ok "installed $label."
+    rm -f "$tmp"
+    log_warn "could not fetch $label from $url"
+    return 1
+}
+
+# true when the shebang line names a posix-ish shell we can safely insert into
+shell_shebang_ok() {
+    interp="${1#\#!}"
+    set -- $interp
+    base="${1##*/}"
+    [ "$base" = env ] && base="${2:-}"
+    case "$base" in sh|bash|dash|ash|zsh) return 0 ;; *) return 1 ;; esac
 }
 
 if [ -n "$REPO_ROOT" ]; then
     HUSKY_DIR="$REPO_ROOT/.husky"
+    HOOK="$HUSKY_DIR/pre-commit"
+    GUARD="$HUSKY_DIR/identity-guard.sh"
     mkdir -p "$HUSKY_DIR"
-    [ ! -d "$HUSKY_DIR/pre-commit" ] ||
-        log_fail ".husky/pre-commit is a directory; move it aside and rerun setup."
+    [ ! -d "$HOOK" ] || log_fail ".husky/pre-commit is a directory; move it aside and rerun setup."
 
-    BUN_READY=false
-    if command -v bun >/dev/null 2>&1 && bun --version >/dev/null 2>&1 &&
-       command -v bunx >/dev/null 2>&1 && bunx --version >/dev/null 2>&1; then
-        BUN_READY=true
-    fi
-    if [ "$BUN_READY" = "false" ]; then
-        # Keep an existing project hook for a later bootstrap with Bun available.
-        if [ -f "$HUSKY_DIR/pre-commit" ] && ! grep -q '^# atlas identity-only hook$' "$HUSKY_DIR/pre-commit"; then
-            [ ! -e "$HUSKY_DIR/pre-commit.atlas-backup" ] || log_fail "pre-commit backup already exists."
-            mv "$HUSKY_DIR/pre-commit" "$HUSKY_DIR/pre-commit.atlas-backup"
-        fi
-        identity_hook="$(mktemp "$HUSKY_DIR/pre-commit.tmp.XXXXXX")"
-        cat > "$identity_hook" <<'EOF'
-#!/bin/sh
-# atlas identity-only hook
-exec "$(git rev-parse --show-toplevel)/.husky/identity-guard.sh"
-EOF
-        chmod +x "$identity_hook"
-        mv -f "$identity_hook" "$HUSKY_DIR/pre-commit"
-    elif [ -f "$HUSKY_DIR/pre-commit.atlas-backup" ]; then
-        mv "$HUSKY_DIR/pre-commit.atlas-backup" "$HUSKY_DIR/pre-commit"
-    elif [ ! -f "$HUSKY_DIR/pre-commit" ] || grep -q '^# atlas identity-only hook$' "$HUSKY_DIR/pre-commit"; then
-        install_hook_file "${REPO_RAW_ROOT}/.husky/pre-commit" "$HUSKY_DIR/pre-commit" ".husky/pre-commit"
-    elif [ ! -L "$HUSKY_DIR/pre-commit" ]; then
-        chmod +x "$HUSKY_DIR/pre-commit" || log_fail "failed to mark existing .husky/pre-commit executable."
-    fi
+    # one-time migration from the old wrapper scheme (delete after your repos are re-run)
+    [ ! -f "$HOOK.atlas-project" ] || mv -f "$HOOK.atlas-project" "$HOOK"
+    [ ! -f "$HOOK.atlas-backup" ]  || mv -f "$HOOK.atlas-backup" "$HOOK"
 
     git config --local atlas.expected-name "$GIT_AUTHOR_NAME"
     git config --local atlas.expected-email "$GIT_AUTHOR_EMAIL"
 
-    if [ ! -f "$HUSKY_DIR/identity-guard.sh" ]; then
-        install_hook_file "${REPO_RAW_ROOT}/.husky/identity-guard.sh" "$HUSKY_DIR/identity-guard.sh" ".husky/identity-guard.sh"
+    # guard: always refresh; keep an existing copy only if the fetch fails
+    if fetch_executable "${REPO_RAW_ROOT}/.husky/identity-guard.sh" "$GUARD" ".husky/identity-guard.sh"; then
+        log_ok "refreshed .husky/identity-guard.sh."
+    elif [ -f "$GUARD" ]; then
+        chmod +x "$GUARD" || log_fail "failed to mark existing identity-guard.sh executable."
+        log_warn "using existing identity-guard.sh, which may be stale."
     else
-        chmod +x "$HUSKY_DIR/identity-guard.sh" || log_fail "failed to mark existing .husky/identity-guard.sh executable."
+        log_fail "identity-guard.sh unavailable and no local copy exists."
     fi
 
-    # Always put the guard before a project hook, preserving its interpreter
-    # and arguments. Compare the complete wrapper to make reruns idempotent.
-    if [ "$BUN_READY" = "true" ]; then
-        wrapper="$(mktemp "$HUSKY_DIR/pre-commit.tmp.XXXXXX")"
-        cat > "$wrapper" <<'EOF'
-#!/bin/sh
-hook_dir="$(git rev-parse --show-toplevel)/.husky"
-"$hook_dir/identity-guard.sh" || exit $?
-exec "$hook_dir/pre-commit.atlas-project" "$@"
-EOF
-        if ! cmp -s "$wrapper" "$HUSKY_DIR/pre-commit"; then
-            if [ -e "$HUSKY_DIR/pre-commit.atlas-project" ] || [ -L "$HUSKY_DIR/pre-commit.atlas-project" ]; then
-                rm -f "$wrapper"
-                log_fail "project hook backup already exists; cannot safely wrap pre-commit."
+    # pre-commit: never overwrite; make sure it calls the guard
+    if [ ! -e "$HOOK" ]; then
+        printf '#!/usr/bin/env sh\nset -e\n%s\n' "$GUARD_CALL" > "$HOOK"
+        chmod +x "$HOOK"
+        log_ok "created .husky/pre-commit with identity guard."
+    elif grep -v '^[[:space:]]*#' "$HOOK" | grep -q 'identity-guard\.sh'; then
+        log_ok "pre-commit already calls the identity guard."
+    else
+        [ ! -L "$HOOK" ] ||
+            log_fail ".husky/pre-commit is a symlink; editing it would change a shared file. add this line by hand: $GUARD_CALL"
+        first="$(head -n 1 "$HOOK")"
+        has_shebang=false
+        case "$first" in
+            "#!"*)
+                shell_shebang_ok "$first" ||
+                    log_fail "pre-commit is not a shell hook ($first). add this line by hand: $GUARD_CALL"
+                has_shebang=true
+                ;;
+        esac
+        tmp="$(mktemp "$HOOK.tmp.XXXXXX")"
+        {
+            if [ "$has_shebang" = "true" ]; then
+                printf '%s\n%s\n' "$first" "$GUARD_CALL"
+                tail -n +2 "$HOOK"
+            else
+                printf '%s\n' "$GUARD_CALL"
+                cat "$HOOK"
             fi
-            cp -p "$HUSKY_DIR/pre-commit" "$HUSKY_DIR/pre-commit.atlas-project"
-            chmod +x "$HUSKY_DIR/pre-commit.atlas-project"
-        fi
-        if [ ! -f "$HUSKY_DIR/pre-commit.atlas-project" ] ||
-           [ ! -x "$HUSKY_DIR/pre-commit.atlas-project" ] ||
-           [ "$HUSKY_DIR/pre-commit.atlas-project" -ef "$HUSKY_DIR/pre-commit" ]; then
-            rm -f "$wrapper"
-            log_fail "project hook backup missing or invalid; restore an executable .husky/pre-commit.atlas-project, or replace .husky/pre-commit with the original project hook and rerun setup."
-        fi
-        # Replace the local directory entry, leaving any shared symlink target intact.
-        chmod +x "$wrapper"
-        mv -f "$wrapper" "$HUSKY_DIR/pre-commit"
+        } > "$tmp" || { rm -f "$tmp"; log_fail "failed to build updated pre-commit."; }
+        chmod +x "$tmp"
+        mv -f "$tmp" "$HOOK"
+        log_ok "added identity guard call to existing pre-commit."
     fi
+    [ -x "$HOOK" ] || chmod +x "$HOOK" || log_fail "failed to mark .husky/pre-commit executable."
 
-    # Preserve paths that reach our hook directly (including symlinks), or
-    # through the standard Husky dispatcher. Repair stale Husky paths only.
+    # hooksPath: keep your existing logic, with $HOOK in place of the old paths
     hooks_path="$(git config --path --get core.hooksPath 2>/dev/null || true)"
     hooks_reach_guard() {
         hook_candidate="$hooks_path/pre-commit"
@@ -642,7 +641,7 @@ EOF
             *) hook_candidate="$REPO_ROOT/$hook_candidate" ;;
         esac
         [ -f "$hook_candidate" ] && [ -x "$hook_candidate" ] || return 1
-        [ "$hook_candidate" -ef "$HUSKY_DIR/pre-commit" ] && return 0
+        [ "$hook_candidate" -ef "$HOOK" ] && return 0
         [ "$hook_candidate" -ef "$HUSKY_DIR/_/pre-commit" ] &&
             [ -x "$HUSKY_DIR/_/h" ] &&
             grep -qF '. "$(dirname "$0")/h"' "$hook_candidate" &&
@@ -655,7 +654,7 @@ EOF
                 git config --local core.hooksPath .husky
                 hooks_path=.husky
                 ;;
-            *) log_fail "configured core.hooksPath does not reach the installed identity hook." ;;
+            *) log_fail "configured core.hooksPath does not reach the identity hook." ;;
         esac
     fi
     hooks_reach_guard || log_fail "failed to activate local identity hook."

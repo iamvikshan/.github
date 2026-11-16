@@ -32,7 +32,7 @@ fi
 HISTFILE="$HOME/.zsh_history"
 HISTSIZE=50000
 SAVEHIST=50000
-setopt HIST_IGNORE_ALL_DUPS HIST_FIND_NO_DUPS HIST_REDUCE_BLANKS SHARE_HISTORY INTERACTIVE_COMMENTS
+setopt HIST_IGNORE_ALL_DUPS HIST_IGNORE_SPACE HIST_FIND_NO_DUPS HIST_REDUCE_BLANKS HIST_VERIFY SHARE_HISTORY EXTENDED_HISTORY INTERACTIVE_COMMENTS
 
 # completion initialization (cached daily for instant startup)
 autoload -Uz compinit
@@ -117,3 +117,18 @@ fi
 
 # source centralized aliases
 [[ -f "$HOME/.config/zsh/aliases.sh" ]] && source "$HOME/.config/zsh/aliases.sh"
+
+# compile zsh configs and plugins to bytecode (.zwc) in background when newer than cache
+{
+  autoload -Uz zcompile
+  local _zfile
+  for _zfile in \
+    "$HOME/.zshrc" \
+    "$HOME/.config/zsh/aliases.sh" \
+    "$HOME/.local/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh" \
+    "$HOME/.local/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"; do
+    if [[ -f "$_zfile" && ( ! -f "${_zfile}.zwc" || "$_zfile" -nt "${_zfile}.zwc" ) ]]; then
+      zcompile "$_zfile" 2>/dev/null
+    fi
+  done
+} &!
