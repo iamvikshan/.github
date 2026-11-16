@@ -1,102 +1,119 @@
 # ==============================================================================
-# Universal Zsh Configuration
+# universal zsh configuration (debian, alpine, macos, devcontainers)
 # ==============================================================================
 
-# Ensure local bin is in PATH
-if [[ ":${PATH}:" != *":$HOME/.local/bin:"* ]]; then
-  export PATH="$HOME/.local/bin:${PATH}"
-fi
+# path hierarchy
+typeset -U path PATH
+path=("$HOME/.local/bin" "$HOME/.bun/bin" $path)
+export BUN_INSTALL="$HOME/.bun"
 
-# DevContainer/Codespaces: Suppress first-run notice
+# devcontainer / codespaces first-run notice suppression
 if [[ -t 1 && ("${TERM_PROGRAM}" == 'vscode' || "${TERM_PROGRAM}" == 'codespaces') && ! -f "$HOME/.config/vscode-dev-containers/first-run-notice-already-displayed" ]]; then
-  if [[ -f '/usr/local/etc/vscode-dev-containers/first-run-notice.txt' ]]; then
-    cat '/usr/local/etc/vscode-dev-containers/first-run-notice.txt'
-  elif [[ -f '/workspaces/.codespaces/shared/first-run-notice.txt' ]]; then
-    cat '/workspaces/.codespaces/shared/first-run-notice.txt'
-  fi
-  mkdir -p "$HOME/.config/vscode-dev-containers"
-  (sleep 10s; touch "$HOME/.config/vscode-dev-containers/first-run-notice-already-displayed") &!
+    if [[ -f '/usr/local/etc/vscode-dev-containers/first-run-notice.txt' ]]; then
+        cat '/usr/local/etc/vscode-dev-containers/first-run-notice.txt'
+    elif [[ -f '/workspaces/.codespaces/shared/first-run-notice.txt' ]]; then
+        cat '/workspaces/.codespaces/shared/first-run-notice.txt'
+    fi
+    mkdir -p "$HOME/.config/vscode-dev-containers"
+    (sleep 10s; touch "$HOME/.config/vscode-dev-containers/first-run-notice-already-displayed") &!
 fi
 
-# Set VS Code as default git editor if applicable
-if [[ -z "$(git config --get core.editor)" && -z "${GIT_EDITOR}" ]]; then
-  if [[ "${TERM_PROGRAM}" == 'vscode' ]]; then
-    if [[ -n "$(command -v code-insiders)" && -z "$(command -v code)" ]]; then
-      export GIT_EDITOR='code-insiders --wait'
+# set vs code as git editor only when no editor is already configured
+if [[ -z "${GIT_EDITOR}" && "${TERM_PROGRAM}" == 'vscode' ]] &&
+   ! git config --get core.editor >/dev/null 2>&1; then
+    if (( $+commands[code-insiders] )) && (( ! $+commands[code] )); then
+        export GIT_EDITOR='code-insiders --wait'
+    elif (( $+commands[code] )); then
+        export GIT_EDITOR='code --wait'
+    fi
+fi
+
+# history persistence
+HISTFILE="$HOME/.zsh_history"
+HISTSIZE=50000
+SAVEHIST=50000
+setopt HIST_IGNORE_ALL_DUPS HIST_FIND_NO_DUPS HIST_REDUCE_BLANKS SHARE_HISTORY INTERACTIVE_COMMENTS
+
+# completion initialization (cached daily for instant startup)
+autoload -Uz compinit
+if [[ -n ${HOME}/.zcompdump(#qN.mh+24) ]]; then
+    compinit
+else
+    compinit -C
+fi
+zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'
+zstyle ':completion:*' menu no
+
+# load standalone zsh plugins
+ZSH_PLUGIN_DIR="$HOME/.local/share/zsh/plugins"
+[[ -f "$ZSH_PLUGIN_DIR/fzf-tab/fzf-tab.plugin.zsh" ]] && source "$ZSH_PLUGIN_DIR/fzf-tab/fzf-tab.plugin.zsh"
+[[ -f "$ZSH_PLUGIN_DIR/zsh-autosuggestions/zsh-autosuggestions.zsh" ]] && source "$ZSH_PLUGIN_DIR/zsh-autosuggestions/zsh-autosuggestions.zsh"
+[[ -f "$ZSH_PLUGIN_DIR/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" ]] && source "$ZSH_PLUGIN_DIR/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
+
+# blood-obsidian autosuggestion tint
+ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=#634F52'
+
+# fzf + fd + bat integration with blood-obsidian palette
+if (( $+commands[fzf] )); then
+    export FZF_DEFAULT_OPTS=" \
+        --height=50% --layout=reverse --border=rounded --margin=1 --padding=1 \
+        --color=bg+:#291F21,bg:#141011,spinner:#D92638,hl:#FF4D5E \
+        --color=fg:#DEC9CB,header:#8C787B,info:#B81D24,pointer:#D92638 \
+        --color=marker:#6ECB86,fg+:#FFF5F6,prompt:#D92638,hl+:#FF4D5E \
+        --color=border:#48393B"
+
+    if (( $+commands[fd] )); then
+        export FZF_DEFAULT_COMMAND='fd --type f --strip-cwd-prefix --hidden --follow --exclude .git'
+        export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
+        export FZF_ALT_C_COMMAND='fd --type d --strip-cwd-prefix --hidden --follow --exclude .git'
+    fi
+
+    if (( $+commands[bat] )); then
+        export FZF_CTRL_T_OPTS="--preview 'bat --color=always --style=numbers --line-range=:200 {}'"
+        export BAT_THEME="ansi"
+    fi
+
+    if (( $+commands[eza] )); then
+        export FZF_ALT_C_OPTS="--preview 'eza --tree --level=2 --icons --color=always {}'"
+        zstyle ':fzf-tab:complete:cd:*' fzf-preview 'eza -1 --icons --color=always $realpath'
+    fi
+
+    if fzf --zsh >/dev/null 2>&1; then
+        source <(fzf --zsh)
     else
-      export GIT_EDITOR='code --wait'
+        for fzf_dir in /usr/share/doc/fzf/examples /usr/share/fzf; do
+            [[ -f "$fzf_dir/completion.zsh" ]] && source "$fzf_dir/completion.zsh"
+            [[ -f "$fzf_dir/key-bindings.zsh" ]] && source "$fzf_dir/key-bindings.zsh"
+        done
     fi
-  fi
 fi
 
-# Path to Oh My Zsh installation
-export ZSH="$HOME/.oh-my-zsh"
+# zoxide smart cd initialization
+(( $+commands[zoxide] )) && eval "$(zoxide init zsh)"
 
-# Set theme to empty string since we build a custom prompt below
-ZSH_THEME=""
+# starship async rust prompt
+(( $+commands[starship] )) && eval "$(starship init zsh)"
 
-# Plugins list
-plugins=(git bun zsh-autosuggestions zsh-syntax-highlighting)
-
-# Load Oh My Zsh
-source "$ZSH"/oh-my-zsh.sh
-
-# Allow variable substitution in prompt
-setopt PROMPT_SUBST
-
-# Custom Git Info Function
-__git_info() {
-    if [[ "$(git config --get devcontainers-theme.hide-status 2>/dev/null)" == "1" ]] || [[ "$(git config --get codespaces-theme.hide-status 2>/dev/null)" == "1" ]]; then
-        return
-    fi
-    local branch
-    branch=$(git --no-optional-locks symbolic-ref --short HEAD 2>/dev/null || git --no-optional-locks rev-parse --short HEAD 2>/dev/null)
-    if [[ -n "${branch}" ]]; then
-        local dirty_flag=""
-        if [[ -z "${SKIP_GIT_DIRTY_CHECK}" ]] && { [[ "$(git config --get devcontainers-theme.show-dirty 2>/dev/null)" == "1" ]] || [[ -z "${TERM_PROGRAM}" ]]; }; then
-            if git --no-optional-locks ls-files --error-unmatch -m --directory --no-empty-directory -o --exclude-standard ":/*" > /dev/null 2>&1; then
-                dirty_flag=" %F{yellow}x"
-            fi
-        fi
-        echo "%F{cyan}(%F{red}${branch}${dirty_flag}%F{cyan}) "
-    fi
-}
-
-# The Prompt String
-PROMPT='%(?.%F{green}.%F{red})->%f %F{green}${GITHUB_USER:-%n}%f %F{blue}%4~%f $(__git_info)%f$ '
-
-# Terminal Title Updates
+# terminal window title updates
 if [[ "$TERM" == "xterm" || "$TERM" == "xterm-256color" || "$TERM_PROGRAM" == "vscode" ]]; then
     preexec() { print -Pn "\e]0;%n@%m: $1\a" }
-    precmd() { print -Pn "\e]0;%n@%m: zsh\a" }
+    precmd()  { print -Pn "\e]0;%n@%m: zsh\a" }
 fi
 
-# ==============================================================================
-# Environment-Aware Clipboard Aliasing
-# ==============================================================================
-
-if [[ "$(uname)" == "Darwin" ]]; then
-  # macOS: native pbcopy is available, do nothing
-  :
-elif [[ "${CODESPACES}" == "true" || "${TERM_PROGRAM}" == "vscode" ]]; then
-  # Codespaces / VS Code Native Environment
-  # VS Code handles clipboard sync automatically via the browser/IPC.
-  # We alias pbcopy to xclip/xsel if available, or fallback to OSC 52.
-  pbcopy() {
-    if command -v xclip >/dev/null 2>&1 && [[ -n "${DISPLAY}${WAYLAND_DISPLAY}" ]]; then
-      xclip -selection clipboard
-    elif command -v xsel >/dev/null 2>&1 && [[ -n "${DISPLAY}${WAYLAND_DISPLAY}" ]]; then
-      xsel --clipboard --input
-    else
-      printf '\033]52;c;%s\a' "$(base64 | tr -d '\n')"
-    fi
-  }
-else
-  # Raw VPS / SSH Session
-  # Force the OSC 52 terminal escape sequence.
-  pbcopy() {
-    printf '\033]52;c;%s\a' "$(base64 | tr -d '\n')"
-  }
+# environment-aware clipboard (macos, wayland/cosmic, x11, and ssh/containers via osc 52)
+if [[ "$(uname)" != "Darwin" ]]; then
+    pbcopy() {
+        if [[ -n "${WAYLAND_DISPLAY}" ]] && (( $+commands[wl-copy] )); then
+            wl-copy
+        elif [[ -n "${DISPLAY}" ]] && (( $+commands[xclip] )); then
+            xclip -selection clipboard
+        elif [[ -n "${DISPLAY}" ]] && (( $+commands[xsel] )); then
+            xsel --clipboard --input
+        else
+            printf '\033]52;c;%s\a' "$(base64 | tr -d '\n')"
+        fi
+    }
 fi
 
-export PATH="/root/.bun/bin:$PATH"
+# source centralized aliases
+[[ -f "$HOME/.config/zsh/aliases.sh" ]] && source "$HOME/.config/zsh/aliases.sh"

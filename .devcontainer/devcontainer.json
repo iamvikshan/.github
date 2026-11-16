@@ -1,6 +1,6 @@
 {
   "name": "Ubuntu + Bun",
-  "image": "vikshan/ubuntu-bun-ai:latest",
+  "image": "vikshan/bun:latest",
   "customizations": {
     "vscode": {
       "extensions": [

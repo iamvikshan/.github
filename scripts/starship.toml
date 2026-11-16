@@ -1,0 +1,67 @@
+# ==============================================================================
+# starship blood-obsidian prompt configuration
+# ==============================================================================
+
+add_newline = false
+command_timeout = 500
+
+format = """
+$os\
+$username\
+$directory\
+$git_branch\
+$git_status\
+$cmd_duration\
+$line_break\
+$character"""
+
+[os]
+disabled = false
+style = "bold #D92638"
+format = "[$symbol]($style) "
+
+[os.symbols]
+Debian = ""
+Alpine = ""
+Macos = ""
+Linux = ""
+
+[username]
+show_always = false
+style_user = "bold #FFF5F6"
+style_root = "bold #FF4D5E"
+format = "[$user]($style) "
+
+[directory]
+style = "bold #DEC9CB"
+truncation_length = 4
+truncation_symbol = "…/"
+format = "[$path]($style) "
+
+[git_branch]
+symbol = " "
+style = "bold #D92638"
+format = "[$symbol$branch]($style) "
+
+[git_status]
+style = "bold #FF4D5E"
+conflicted = "=${count} "
+ahead = "⇡${count} "
+behind = "⇣${count} "
+diverged = "⇕⇡${ahead_count}⇣${behind_count} "
+untracked = "?${count} "
+stashed = "*${count} "
+modified = "!${count} "
+staged = "+${count} "
+deleted = "✘${count} "
+format = "([$all_status$ahead_behind]($style))"
+
+[cmd_duration]
+min_time = 1500
+style = "italic #8C787B"
+format = "[󱦟 $duration]($style)"
+
+[character]
+success_symbol = "[❯](bold #D92638)"
+error_symbol = "[❯](bold #FF4D5E)"
+vimcmd_symbol = "[❮](bold #6ECB86)"

@@ -1,45 +1,104 @@
-#!/bin/bash
-# identity-guard.sh - Enforces expected git identity to prevent accidental commits
+#!/usr/bin/env sh
+# identity-guard.sh - enforces expected git author and committer identity
 
-# Skip in CI or when HUSKY is disabled
+# skip in ci or when husky is disabled
 if [ "${CI:-}" = "true" ] || [ -n "${GITHUB_ACTIONS:-}" ] || [ -n "${GITLAB_CI:-}" ] || [ "${HUSKY:-}" = "0" ]; then
-  echo "Identity guard skipped in CI or HUSKY=0"
+  echo "identity guard skipped in ci or husky=0"
   exit 0
 fi
 
-# Codespaces (or general dev environment) identity check
-if [ -n "${CODESPACES:-}" ]; then
-  # Read from the local cache set by bootstrap.sh
-  EXPECTED_NAME=$(git config --local atlas.expected-name 2>/dev/null || echo "")
-  EXPECTED_EMAIL=$(git config --local atlas.expected-email 2>/dev/null || echo "")
+# read the expected identity from local git config (set by bootstrap)
+EXPECTED_NAME=$(git config --local atlas.expected-name 2>/dev/null || printf '')
+EXPECTED_EMAIL=$(git config --local atlas.expected-email 2>/dev/null || printf '')
 
-  if [ -z "$EXPECTED_NAME" ] || [ -z "$EXPECTED_EMAIL" ]; then
-    echo "❌ Error: Local expected identity not found."
-    echo "   Please run your environment setup:"
-    echo "   bash scripts/bootstrap.sh"
+if [ -z "$EXPECTED_NAME" ] || [ -z "$EXPECTED_EMAIL" ]; then
+  echo "[error] expected identity not configured."
+  echo "   run 'bun bs' to bootstrap your environment, or set manually:"
+  echo "     git config --local atlas.expected-name \"Your Name\""
+  echo "     git config --local atlas.expected-email \"you@example.com\""
+  exit 1
+fi
+
+# resolve effective author identity (env vars > author.* > user.*)
+# use ${VAR-default} (no colon) so explicitly empty env vars are preserved,
+# not silently replaced — git rejects empty identities with "empty ident".
+CONFIG_USER=$(git config user.name 2>/dev/null || printf '')
+CONFIG_EMAIL=$(git config user.email 2>/dev/null || printf '')
+CONFIG_AUTHOR_USER=$(git config author.name 2>/dev/null || printf '%s' "$CONFIG_USER")
+CONFIG_AUTHOR_EMAIL=$(git config author.email 2>/dev/null || printf '%s' "$CONFIG_EMAIL")
+EFFECTIVE_USER="${GIT_AUTHOR_NAME-$CONFIG_AUTHOR_USER}"
+EFFECTIVE_EMAIL="${GIT_AUTHOR_EMAIL-$CONFIG_AUTHOR_EMAIL}"
+
+# report explicitly empty GIT_AUTHOR_* early so the user gets a clear error
+# instead of git's opaque "empty ident name (or email address) not allowed"
+if [ -z "$EFFECTIVE_USER" ] && [ "${GIT_AUTHOR_NAME+set}" = "set" ]; then
+  echo "[error] GIT_AUTHOR_NAME is set but empty — git will reject the commit."
+  echo "   unset it first:  unset GIT_AUTHOR_NAME"
+  exit 1
+fi
+if [ -z "$EFFECTIVE_EMAIL" ] && [ "${GIT_AUTHOR_EMAIL+set}" = "set" ]; then
+  echo "[error] GIT_AUTHOR_EMAIL is set but empty — git will reject the commit."
+  echo "   unset it first:  unset GIT_AUTHOR_EMAIL"
+  exit 1
+fi
+
+# resolve effective committer identity through git (GIT_COMMITTER_* > committer.* > user.*)
+COMMITTER_IDENT=$(git var GIT_COMMITTER_IDENT 2>/dev/null || true)
+if [ -n "$COMMITTER_IDENT" ]; then
+  EFFECTIVE_COMMITTER_USER="${COMMITTER_IDENT%% <*}"
+  _ident_rest="${COMMITTER_IDENT#*<}"
+  EFFECTIVE_COMMITTER_EMAIL="${_ident_rest%%>*}"
+else
+  CONFIG_COMMITTER_USER=$(git config committer.name 2>/dev/null || printf '%s' "$CONFIG_USER")
+  CONFIG_COMMITTER_EMAIL=$(git config committer.email 2>/dev/null || printf '%s' "$CONFIG_EMAIL")
+  # use ${VAR-default} (no colon) to preserve explicitly empty env vars
+  EFFECTIVE_COMMITTER_USER="${GIT_COMMITTER_NAME-$CONFIG_COMMITTER_USER}"
+  EFFECTIVE_COMMITTER_EMAIL="${GIT_COMMITTER_EMAIL-$CONFIG_COMMITTER_EMAIL}"
+  # report explicitly empty GIT_COMMITTER_* early for a clear error message
+  if [ -z "$EFFECTIVE_COMMITTER_USER" ] && [ "${GIT_COMMITTER_NAME+set}" = "set" ]; then
+    echo "[error] GIT_COMMITTER_NAME is set but empty — git will reject the commit."
+    echo "   unset it first:  unset GIT_COMMITTER_NAME"
     exit 1
   fi
-
-  CURRENT_USER=$(git config --global user.name 2>/dev/null || echo "")
-  CURRENT_EMAIL=$(git config --global user.email 2>/dev/null || echo "")
-
-  # Also check GIT_AUTHOR_* env vars which override git config at commit time
-  EFFECTIVE_USER="${GIT_AUTHOR_NAME:-$CURRENT_USER}"
-  EFFECTIVE_EMAIL="${GIT_AUTHOR_EMAIL:-$CURRENT_EMAIL}"
-
-  if [ "$EFFECTIVE_USER" != "$EXPECTED_NAME" ] || [ "$EFFECTIVE_EMAIL" != "$EXPECTED_EMAIL" ]; then
-    echo "❌ Git identity mismatch detected in Codespaces!"
-    echo "   Expected:  $EXPECTED_NAME <$EXPECTED_EMAIL>"
-    echo "   Effective: $EFFECTIVE_USER <$EFFECTIVE_EMAIL>"
-    if [ -n "${GIT_AUTHOR_NAME:-}" ] || [ -n "${GIT_AUTHOR_EMAIL:-}" ]; then
-      echo "   (GIT_AUTHOR_NAME/EMAIL env vars are overriding git config)"
-    fi
-    echo ""
-    echo "To fix this attribution, please run:"
-    echo "   bash scripts/bootstrap.sh"
-    echo ""
+  if [ -z "$EFFECTIVE_COMMITTER_EMAIL" ] && [ "${GIT_COMMITTER_EMAIL+set}" = "set" ]; then
+    echo "[error] GIT_COMMITTER_EMAIL is set but empty — git will reject the commit."
+    echo "   unset it first:  unset GIT_COMMITTER_EMAIL"
     exit 1
   fi
+fi
+
+if [ "$EFFECTIVE_USER" != "$EXPECTED_NAME" ] || [ "$EFFECTIVE_EMAIL" != "$EXPECTED_EMAIL" ]; then
+  echo "[error] git author identity mismatch!"
+  echo "   expected:  $EXPECTED_NAME <$EXPECTED_EMAIL>"
+  echo "   effective: $EFFECTIVE_USER <$EFFECTIVE_EMAIL>"
+  if [ -n "${GIT_AUTHOR_NAME:-}" ] || [ -n "${GIT_AUTHOR_EMAIL:-}" ]; then
+    echo "   (GIT_AUTHOR_NAME/EMAIL env vars are overriding git config - unset them first)"
+    echo "     unset GIT_AUTHOR_NAME GIT_AUTHOR_EMAIL"
+  fi
+  echo ""
+  echo "to fix, run 'bun bs' or set your identity:"
+  echo "   git config user.name \"$EXPECTED_NAME\""
+  echo "   git config user.email \"$EXPECTED_EMAIL\""
+  echo ""
+  exit 1
+fi
+
+if [ "$EFFECTIVE_COMMITTER_USER" != "$EXPECTED_NAME" ] || [ "$EFFECTIVE_COMMITTER_EMAIL" != "$EXPECTED_EMAIL" ]; then
+  echo "[error] git committer identity mismatch!"
+  echo "   expected:  $EXPECTED_NAME <$EXPECTED_EMAIL>"
+  echo "   committer: $EFFECTIVE_COMMITTER_USER <$EFFECTIVE_COMMITTER_EMAIL>"
+  if [ -n "${GIT_COMMITTER_NAME:-}" ] || [ -n "${GIT_COMMITTER_EMAIL:-}" ]; then
+    echo "   (GIT_COMMITTER_NAME/EMAIL env vars are overriding git config - unset them first)"
+    echo "     unset GIT_COMMITTER_NAME GIT_COMMITTER_EMAIL"
+  fi
+  echo ""
+  echo "to fix, run 'bun bs' or align user/committer config:"
+  echo "   git config user.name \"$EXPECTED_NAME\""
+  echo "   git config user.email \"$EXPECTED_EMAIL\""
+  echo "   git config --local --replace-all committer.name \"$EXPECTED_NAME\""
+  echo "   git config --local --replace-all committer.email \"$EXPECTED_EMAIL\""
+  echo ""
+  exit 1
 fi
 
 exit 0
