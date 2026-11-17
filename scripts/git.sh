@@ -91,6 +91,12 @@ for arg in "$@"; do
     esac
 done
 
+# Reject invalid preferences before trusting a directory or changing Git config.
+case "${ATLAS_GIT_FILEMODE:-}" in
+    true|false|'') ;;
+    *) log_fail "ATLAS_GIT_FILEMODE must be true or false." ;;
+esac
+
 if [ -z "${IS_INTERACTIVE:-}" ]; then
     if [ "$FORCE_DEFAULT" = "true" ] || [ ! -t 0 ] || ! (exec < /dev/tty) 2>/dev/null; then
         IS_INTERACTIVE=false
@@ -278,7 +284,6 @@ if [ -n "$REPO_ROOT" ]; then
     case "${ATLAS_GIT_FILEMODE:-}" in
         true|false) git config --local core.fileMode "$ATLAS_GIT_FILEMODE" ;;
         '') ;;
-        *) log_fail "ATLAS_GIT_FILEMODE must be true or false." ;;
     esac
     for role in author committer; do
         git config --local --replace-all "$role.name" "$GIT_AUTHOR_NAME"

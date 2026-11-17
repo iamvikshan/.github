@@ -168,7 +168,7 @@ if [[ -z ${EDITOR:-} ]]; then
     done
     unset _atlas_editor
 fi
-if (( $+commands[bat] && $+commands[col] )); then
+if [[ ! -v MANPAGER ]] && (( $+commands[bat] && $+commands[col] )); then
     export MANPAGER="sh -c 'col -bx | bat --language=man --style=plain'"
 fi
 

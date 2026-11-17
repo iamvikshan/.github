@@ -102,6 +102,33 @@ else
     run_remote_script "packages.sh"
 fi
 
+# Fonts are rendered by the client. Install on desktops, or explicitly opt in.
+case "${ATLAS_INSTALL_FONTS:-auto}" in
+    true|1) install_fonts=true ;;
+    false|0) install_fonts=false ;;
+    auto)
+        install_fonts=false
+        if [ -z "${CODESPACES:-}" ] && [ -z "${SSH_CONNECTION:-}" ] &&
+           { [ "$(uname -s)" = Darwin ] || [ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ]; }; then
+            install_fonts=true
+        fi ;;
+    *) log_fail "ATLAS_INSTALL_FONTS must be auto, true, or false." ;;
+esac
+if [ "$install_fonts" = true ]; then
+    log_exec "checking Argon Nerd Font..."
+    if [ -f "$SCRIPT_DIR/fonts.sh" ]; then
+        sh "$SCRIPT_DIR/fonts.sh" || log_warn "font setup failed; configure it on your terminal host."
+    else
+        font_script="$(mktemp "${TMPDIR:-/tmp}/fonts.sh.XXXXXX")"
+        TMP_FILES="$TMP_FILES $font_script"
+        if curl -fsSL "$REPO_RAW_BASE/fonts.sh" -o "$font_script" && [ -s "$font_script" ]; then
+            sh "$font_script" || log_warn "font setup failed; configure it on your terminal host."
+        else
+            log_warn "font installer unavailable; configure the font on your terminal host."
+        fi
+    fi
+fi
+
 # 6. install standalone zsh plugins (zero oh-my-zsh overhead)
 log_exec "syncing standalone zsh plugins..."
 PLUGIN_DIR="$HOME/.local/share/zsh/plugins"

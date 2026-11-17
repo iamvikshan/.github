@@ -1,50 +1,79 @@
-# ==============================================================================
-# starship blood-obsidian prompt configuration
-# ==============================================================================
-
+# Compact blood-obsidian prompt; previous prompts collapse in Zsh scrollback.
 add_newline = true
 command_timeout = 500
+palette = "blood_obsidian"
 
 format = """
 $os\
 $username\
+$hostname\
+${env_var.CODESPACES}\
 $directory\
 $git_branch\
 $git_status\
+$nodejs\
+$bun\
+$python\
+$rust\
+$golang\
+$java\
+$jobs\
+$status\
 $cmd_duration\
 $line_break\
 $character"""
 
+[palettes.blood_obsidian]
+blood = "#D92638"
+accent = "#E47786"
+text = "#E6DADB"
+muted = "#A48F93"
+error = "#FF4D5E"
+warning = "#E7B66A"
+success = "#83C69A"
+
 [os]
 disabled = false
-style = "bold #D92638"
+style = "bold blood"
 format = "[$symbol]($style) "
 
 [os.symbols]
-Debian = ""
+Ubuntu = ""
+Debian = ""
 Alpine = ""
 Macos = ""
 Linux = ""
 
 [username]
 show_always = false
-style_user = "bold #FFF5F6"
-style_root = "bold #FF4D5E"
+style_user = "bold text"
+style_root = "bold error"
 format = "[$user]($style) "
 
+[hostname]
+ssh_only = true
+style = "muted"
+format = "[@$hostname]($style) "
+
+[env_var.CODESPACES]
+format = "[codespace]($style) "
+style = "muted"
+
 [directory]
-style = "bold #DEC9CB"
+style = "bold text"
 truncation_length = 4
 truncation_symbol = "…/"
-format = "[$path]($style) "
+read_only = " ro"
+read_only_style = "bold warning"
+format = "[$path]($style)[$read_only]($read_only_style) "
 
 [git_branch]
 symbol = " "
-style = "bold #D92638"
+style = "bold accent"
 format = "[$symbol$branch]($style) "
 
 [git_status]
-style = "bold #FF4D5E"
+style = "bold warning"
 conflicted = "=${count} "
 ahead = "⇡${count} "
 behind = "⇣${count} "
@@ -56,12 +85,52 @@ staged = "+${count} "
 deleted = "✘${count} "
 format = "([$all_status$ahead_behind]($style))"
 
+[nodejs]
+symbol = " "
+style = "muted"
+format = "[$symbol($version )]($style)"
+
+[bun]
+symbol = " "
+style = "muted"
+format = "[$symbol($version )]($style)"
+
+[python]
+symbol = " "
+style = "muted"
+format = "[$symbol($version )($virtualenv )]($style)"
+
+[rust]
+symbol = " "
+style = "muted"
+format = "[$symbol($version )]($style)"
+
+[golang]
+symbol = " "
+style = "muted"
+format = "[$symbol($version )]($style)"
+
+[java]
+symbol = " "
+style = "muted"
+format = "[$symbol($version )]($style)"
+
+[jobs]
+symbol = "✦"
+style = "warning"
+format = "[$symbol$number]($style) "
+
+[status]
+disabled = false
+style = "bold error"
+format = "[exit $status]($style) "
+
 [cmd_duration]
-min_time = 1500
-style = "italic #8C787B"
-format = "[󱦟 $duration]($style)"
+min_time = 2000
+style = "italic muted"
+format = "[󱦟 $duration]($style) "
 
 [character]
-success_symbol = "[❯](bold #D92638)"
-error_symbol = "[❯](bold #FF4D5E)"
-vimcmd_symbol = "[❮](bold #6ECB86)"
+success_symbol = "[❯](bold text)"
+error_symbol = "[❯](bold error)"
+vimcmd_symbol = "[❮](bold success)"

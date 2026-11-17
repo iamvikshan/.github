@@ -53,6 +53,4 @@ if [[ -n ${ZSH_VERSION:-} ]]; then
     if (( $+commands[bat] )); then
         alias -s md=bat yaml=bat yml=bat toml=bat
     fi
-    alias -g NE='2>/dev/null' NO='>/dev/null 2>&1'
-    (( $+commands[jq] )) && alias -g J='| jq'
 fi
