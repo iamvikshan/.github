@@ -7,15 +7,34 @@ FONT_SHA256=7cdb44b7cd3855a231641b3cc4cf38f434d615d12e1c475eb86232868c667dc0
 FONT_URL="https://github.com/ryanoasis/nerd-fonts/releases/download/v${FONT_VERSION}/Monaspace.tar.xz"
 FONT_PATTERN='MonaspiceAr Nerd Font Mono|MonaspiceAr NFM|Monaspace Argon NF'
 
-# Existing equivalent families may live outside the directory this script manages.
-if command -v fc-list >/dev/null 2>&1 && fc-list --format '%{family}\n' | grep -Ei "$FONT_PATTERN" >/dev/null; then
-    printf '[info] Argon Nerd Font is already registered.\n'
-    exit 0
-fi
-if [ "$(uname -s)" = Darwin ] && command -v system_profiler >/dev/null 2>&1 &&
-   system_profiler SPFontsDataType 2>/dev/null | grep -Ei "$FONT_PATTERN" >/dev/null; then
-    printf '[info] Argon Nerd Font is already registered.\n'
-    exit 0
+# Require every face: a single installed face must not prevent a repair.
+font_faces_registered() {
+    awk -F '|' -v family_pattern="$FONT_PATTERN" '
+        tolower($1) ~ tolower(family_pattern) {
+            style = tolower($2)
+            gsub(/[ -]/, "", style)
+            count = split(style, styles, ",")
+            for (i = 1; i <= count; i++) seen[styles[i]] = 1
+        }
+        END { exit !(seen["regular"] && seen["italic"] && seen["bold"] && seen["bolditalic"]) }
+    '
+}
+font_registry=false
+if command -v fc-list >/dev/null 2>&1; then
+    font_registry=true
+    if fc-list --format '%{family}|%{style}\n' | font_faces_registered; then
+        printf '[info] All four Argon Nerd Font faces are already registered.\n'
+        exit 0
+    fi
+elif [ "$(uname -s)" = Darwin ] && command -v system_profiler >/dev/null 2>&1; then
+    font_registry=true
+    if system_profiler SPFontsDataType 2>/dev/null | awk '
+        /Family:/ { family = $0; sub(/^.*Family: */, "", family) }
+        /Style:/ { style = $0; sub(/^.*Style: */, "", style); print family "|" style; family = "" }
+    ' | font_faces_registered; then
+        printf '[info] All four Argon Nerd Font faces are already registered.\n'
+        exit 0
+    fi
 fi
 
 case "$(uname -s)" in
@@ -25,23 +44,28 @@ case "$(uname -s)" in
 esac
 
 font_sudo=''
+request_sudo=false
 if [ -n "${ATLAS_FONT_DIR:-}" ]; then
     font_dir=$ATLAS_FONT_DIR
 elif [ "$(id -u)" -eq 0 ] || [ -w "$system_dir" ]; then
     font_dir=$system_dir
 elif command -v sudo >/dev/null 2>&1 && sudo -n true 2>/dev/null; then
     font_dir=$system_dir
-    font_sudo=sudo
+    font_sudo='sudo -n'
 else
     font_dir=$user_dir
+    if command -v sudo >/dev/null 2>&1 && [ "${IS_INTERACTIVE:-true}" = true ] && [ -t 0 ]; then
+        request_sudo=true
+    fi
 fi
 
-# Avoid downloading again even when the font cache is unavailable.
+# Without a registry, use the four files as the fallback. With one, repair any
+# partial registration even when the files already exist.
 all_present=true
 for face in Regular Italic Bold BoldItalic; do
     [ -f "$font_dir/MonaspiceArNerdFontMono-$face.otf" ] || all_present=false
 done
-if [ "$all_present" = true ]; then
+if [ "$font_registry" = false ] && [ "$all_present" = true ]; then
     printf '[info] Argon Nerd Font files are already installed in %s.\n' "$font_dir"
     exit 0
 fi
@@ -62,6 +86,17 @@ fi
 tar -xJf "$tmp_dir/Monaspace.tar.xz" -C "$tmp_dir" \
     MonaspiceArNerdFontMono-Regular.otf MonaspiceArNerdFontMono-Italic.otf \
     MonaspiceArNerdFontMono-Bold.otf MonaspiceArNerdFontMono-BoldItalic.otf
+# Authenticate only after verifying/extracting the download. Cached sudo works
+# without prompting; password authentication is limited to an interactive run.
+if [ "$request_sudo" = true ]; then
+    printf '[info] Authorize sudo for system fonts; if authorization fails, install for this user.\n'
+    if sudo -v; then
+        font_dir=$system_dir
+        font_sudo='sudo -n'
+    else
+        printf '[info] Using the current user font directory.\n'
+    fi
+fi
 $font_sudo mkdir -p "$font_dir"
 for face in Regular Italic Bold BoldItalic; do
     $font_sudo install -m 644 "$tmp_dir/MonaspiceArNerdFontMono-$face.otf" "$font_dir/"

@@ -35,22 +35,36 @@ extract_forge_coords() {
     clean_url="${raw_url%/}"
     clean_url="${clean_url%.git}"
 
-    no_scheme="$clean_url"
-    case "$no_scheme" in
-        https://*) no_scheme="${no_scheme#https://}" ;;
-        http://*)  no_scheme="${no_scheme#http://}" ;;
-        ssh://*)   no_scheme="${no_scheme#ssh://}" ;;
-    esac
-
-    no_scheme="${no_scheme##*@}"
-
-    case "$no_scheme" in
-        github.com[:/]*|*@github.com[:/]*)
-            host_prefix="${no_scheme%%github.com[:/]*}"
-            case "$host_prefix" in
-                */*) return 1 ;;
+    # User-info belongs to the authority, never to the repository path.
+    case "$clean_url" in
+        https://*|http://*|ssh://*)
+            no_scheme="${clean_url#*://}"
+            authority="${no_scheme%%/*}"
+            [ "$authority" != "$no_scheme" ] || return 1
+            forge_path="${no_scheme#*/}"
+            forge_host="$(lowercase "${authority##*@}")"
+            case "$clean_url:$forge_host" in
+                https://*:443) forge_host="${forge_host%:443}" ;;
+                http://*:80) forge_host="${forge_host%:80}" ;;
+                ssh://*:22) forge_host="${forge_host%:22}" ;;
             esac
-            gh_path="${no_scheme#*github.com[:/]}"
+            ;;
+        *://*) return 1 ;;
+        github.com/*|gitlab.com/*)
+            forge_host="${clean_url%%/*}"
+            forge_path="${clean_url#*/}"
+            ;;
+        *:*)
+            authority="${clean_url%%:*}"
+            case "$authority" in */*) return 1 ;; esac
+            forge_host="$(lowercase "${authority##*@}")"
+            forge_path="${clean_url#*:}"
+            ;;
+        *) return 1 ;;
+    esac
+    case "$forge_host" in
+        github.com)
+            gh_path="$forge_path"
             parsed_owner="${gh_path%%/*}"
             parsed_repo="${gh_path#*/}"
             if [ -n "$gh_path" ] && [ -n "$parsed_owner" ] && [ -n "$parsed_repo" ] && [ "$parsed_owner" != "$gh_path" ] && [ "$parsed_repo" = "${parsed_repo#*/}" ]; then
@@ -60,12 +74,8 @@ extract_forge_coords() {
             fi
             return 1
             ;;
-        gitlab.com[:/]*|*@gitlab.com[:/]*)
-            host_prefix="${no_scheme%%gitlab.com[:/]*}"
-            case "$host_prefix" in
-                */*) return 1 ;;
-            esac
-            gl_path="${no_scheme#*gitlab.com[:/]}"
+        gitlab.com)
+            gl_path="$forge_path"
             parsed_gl_ns="${gl_path%/*}"
             parsed_gl_repo="${gl_path##*/}"
             if [ -n "$gl_path" ] && [ -n "$parsed_gl_ns" ] && [ -n "$parsed_gl_repo" ] && [ "$parsed_gl_ns" != "$gl_path" ]; then
@@ -335,15 +345,20 @@ while IFS='=' read -r key val; do
     [ -n "$key" ] || break
     case "$key" in host) host="$val" ;; protocol) protocol="$val" ;; esac
 done
+host="$(printf '%s' "$host" | tr '[:upper:]' '[:lower:]')"
+host="${host%:443}"
 case "$protocol:$host" in
     https:github.com|https:gitlab.com) ;;
-    *) printf 'quit=true\n\n'; exit 0 ;;
+    *)
+        printf '[atlas] Refusing credentials for an unsupported protocol or host.\n' >&2
+        printf 'quit=true\n\n'; exit 0 ;;
 esac
 credentials="$(jq -er --arg host "$host" '
     .[$host] | select((.username | type) == "string" and (.token | type) == "string") |
     select((.username | test("^[a-zA-Z0-9_.-]+$")) and (.token | test("^[a-zA-Z0-9_.-]+$"))) |
     "username=\(.username)\npassword=\(.token)"
 ' "$HOME/.local/share/atlas/credentials.json" 2>/dev/null)" || {
+    printf '[atlas] No usable saved credential for %s (missing, disabled, or invalid). Rerun scripts/git.sh to select and verify a token.\n' "$host" >&2
     printf 'quit=true\n\n'
     exit 0
 }
@@ -357,10 +372,19 @@ for auth_host in github.com gitlab.com; do
         # Remove host/path-specific helpers and headers that could override ours.
         git config --name-only --get-regexp '^(credential|http)\.https://.*' 2>/dev/null |
         while IFS= read -r auth_key; do
+            # Git matches HTTPS hosts case-insensitively and normalizes :443.
+            # Keep the original key for writes; path case must remain intact.
+            auth_url="${auth_key#*.}"
+            auth_url="${auth_url%.*}"
+            case "$auth_url" in https://*) auth_authority="${auth_url#https://}" ;; *) continue ;; esac
+            auth_authority="${auth_authority%%/*}"
+            auth_authority="$(lowercase "${auth_authority##*@}")"
+            auth_authority="${auth_authority%:443}"
+            [ "$auth_authority" = "$auth_host" ] || continue
             case "$auth_key" in
-                credential.https://"$auth_host".helper|credential.https://"$auth_host"/*.helper)
+                credential.*.helper)
                     git config "$auth_scope" --unset-all "$auth_key" || true ;;
-                http.https://"$auth_host".extraheader|http.https://"$auth_host"/*.extraheader)
+                http.*.extraheader)
                     git config "$auth_scope" --replace-all "$auth_key" '' ;;
             esac
         done

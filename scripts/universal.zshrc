@@ -102,7 +102,7 @@ if (( $+commands[starship] )); then
     }
     _atlas_accept_line() {
         if [[ $CONTEXT == start && -n ${BUFFER//[[:space:]]/} ]] &&
-           command zsh -fn -c "$BUFFER" </dev/null 2>/dev/null; then
+           command zsh -fn <<< "$BUFFER" 2>/dev/null; then
             # Render only the character module: no leading blank line in scrollback.
             # Status belongs to the previous command, just like the active prompt.
             PROMPT="$(starship module character --status="${STARSHIP_CMD_STATUS:-0}" --keymap="${KEYMAP:-main}")"

@@ -108,7 +108,8 @@ case "${ATLAS_INSTALL_FONTS:-auto}" in
     false|0) install_fonts=false ;;
     auto)
         install_fonts=false
-        if [ -z "${CODESPACES:-}" ] && [ -z "${SSH_CONNECTION:-}" ] &&
+        if [ "$IS_INTERACTIVE" = true ] &&
+           [ -z "${CODESPACES:-}" ] && [ -z "${SSH_CONNECTION:-}" ] &&
            { [ "$(uname -s)" = Darwin ] || [ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ]; }; then
             install_fonts=true
         fi ;;

@@ -25,5 +25,13 @@ Other files/folders included in this repository are:
 - [scripts](./scripts) contains my personal scripts for shell setup, Git
   authentication, and other utilities.
 
-- [actions](./.github/actions) contains my personal GitHub Actions workflows for
-  CI/CD and other automation tasks.
+<!-- coderabbit-ai-generated:v1 -->
+
+<!-- coderabbit-ai-generated-section:v1:e86bb5399f1bd24c7b91ed6580ab95b3a02833ef7f7811d8abac7f71a0e75c50 -->
+
+- [actions](./.github/actions) contains my reusable GitHub Actions.
+
+- [workflows](./.github/workflows) contains my CI/CD workflows and other
+  automation tasks.
+
+<!-- /coderabbit-ai-generated:v1 -->

@@ -10,23 +10,33 @@ credentials and SSH commit signing.
 
 ## Quick start
 
-Run the full setup in an interactive terminal:
+<!-- coderabbit-ai-generated:v1 -->
+
+<!-- coderabbit-ai-generated-section:v1:21e2461651ae7dccfcdabe1c16eae45b773ce4d8cf08124bd1b10d082b3643ef -->
+
+Run the full setup in an interactive terminal (stdin stays attached for
+prompts):
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/iamvikshan/.github/main/scripts/bootstrap.sh | sh
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/iamvikshan/.github/main/scripts/bootstrap.sh)"
 ```
 
-Run it without prompts (headless defaults):
+Run it without prompts (headless defaults, including when stdin is a terminal):
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/iamvikshan/.github/main/scripts/bootstrap.sh | sh -s -- --default
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/iamvikshan/.github/main/scripts/bootstrap.sh)" sh --default
 ```
 
-Environment variables go on the `sh` side of the pipe, not on `curl`:
+Set environment variables on the `sh` command:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/iamvikshan/.github/main/scripts/bootstrap.sh | ATLAS_INSTALL_FONTS=true sh
+ATLAS_INSTALL_FONTS=true sh -c "$(curl -fsSL https://raw.githubusercontent.com/iamvikshan/.github/main/scripts/bootstrap.sh)"
 ```
+
+Piping `curl` into `sh` makes stdin non-terminal, so setup uses headless
+defaults.
+
+<!-- /coderabbit-ai-generated:v1 -->
 
 ## What is in this folder
 
@@ -38,28 +48,40 @@ curl -fsSL https://raw.githubusercontent.com/iamvikshan/.github/main/scripts/boo
 
 ## Run a single part
 
+<!-- coderabbit-ai-generated:v1 -->
+
+<!-- coderabbit-ai-generated-section:v1:0229aad41c4ca4e03cec1a82eacf57264be6cba80c70e6f0e36496c23017d3ec -->
+
 Git setup only:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/iamvikshan/.github/main/scripts/git.sh | sh
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/iamvikshan/.github/main/scripts/git.sh)"
 ```
 
 Font only:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/iamvikshan/.github/main/scripts/fonts.sh | sh
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/iamvikshan/.github/main/scripts/fonts.sh)"
 ```
+
+<!-- /coderabbit-ai-generated:v1 -->
 
 ## Options and environment variables
 
+<!-- coderabbit-ai-generated:v1 -->
+
+<!-- coderabbit-ai-generated-section:v1:2cb439d44f76038c2310c0e00f4aaeaca9abd11660f239c839d4419fb1e6abca -->
+
 | Name                   | Applies to     | Effect                                                                                                    |
 | ---------------------- | -------------- | --------------------------------------------------------------------------------------------------------- |
-| `--default`            | `bootstrap.sh` | Headless defaults, no prompts. Pass it with `sh -s -- --default`.                                         |
+| `--default`            | `bootstrap.sh` | Headless defaults, no prompts. With `sh -c`, pass `sh --default` after the script string.                 |
 | `ATLAS_INSTALL_FONTS`  | `bootstrap.sh` | `true` installs the font on headless or SSH sessions. `false` skips it on a desktop.                      |
 | `ATLAS_FONT_DIR`       | `fonts.sh`     | Install the font into this directory instead of the default.                                              |
 | `ATLAS_GIT_FILEMODE`   | `git.sh`       | `false` ignores executable-bit changes, `true` honors them. Unset keeps the repository's current setting. |
 | `GL_USERNAME`          | `git.sh`       | GitLab account name. Defaults to `vikshan`.                                                               |
 | `GH_TOKEN`, `GL_TOKEN` | `git.sh`       | Initial tokens on the first setup only. See [Credentials](#credentials).                                  |
+
+<!-- /coderabbit-ai-generated:v1 -->
 
 ## Git setup
 
@@ -107,9 +129,15 @@ only, not `gh` or the GitLab CLI, and no CLI is required.
 Git normally detects whether the filesystem supports executable bits. On an
 affected shared mount or an NTFS checkout, run:
 
+<!-- coderabbit-ai-generated:v1 -->
+
+<!-- coderabbit-ai-generated-section:v1:0edc150fbf7beb37a1da6aae17e529f4803c7d85d61f0f678920959609ea8c54 -->
+
 ```sh
-curl -fsSL https://raw.githubusercontent.com/iamvikshan/.github/main/scripts/git.sh | ATLAS_GIT_FILEMODE=false sh
+ATLAS_GIT_FILEMODE=false sh -c "$(curl -fsSL https://raw.githubusercontent.com/iamvikshan/.github/main/scripts/git.sh)"
 ```
+
+<!-- /coderabbit-ai-generated:v1 -->
 
 Set the variable to `true` to honor executable-bit changes again.
 
@@ -117,10 +145,16 @@ Set the variable to `true` to honor executable-bit changes again.
 
 ### Prompt
 
+<!-- coderabbit-ai-generated:v1 -->
+
+<!-- coderabbit-ai-generated-section:v1:a60fe905690686b905e06d93486ce15511f3dc66c2472fb65b4750f2dcee94d0 -->
+
 The active prompt has context on the first line and input on the second. After a
 command is accepted, the previous prompt collapses to a single character, and
-the arrow shows the status of that command. A failed command also shows its exit
-code in the next active prompt.
+the arrow shows the status of the preceding command. A failed command also shows
+its exit code in the next active prompt.
+
+<!-- /coderabbit-ai-generated:v1 -->
 
 Directory, OS, and repository information appear when applicable. Runtimes,
 remote context, background jobs, read-only directories, and commands that took
@@ -133,21 +167,32 @@ container or over SSH. In VS Code, select the installed family in
 
 ### Argon Nerd Font
 
-Desktop bootstrap checks for an existing Argon Nerd Font. If none is found, it
-installs the Regular, Italic, Bold, and Bold Italic faces of
-`MonaspiceAr Nerd Font Mono` from Nerd Fonts 3.5.1, after verifying the release
-archive checksum. On Linux it refreshes the fontconfig cache when available.
+<!-- coderabbit-ai-generated:v1 -->
 
-- **Install location:** a system font directory if writable or if passwordless
-  sudo is available, otherwise the current user's font directory.
-  `ATLAS_FONT_DIR` overrides this.
-- **Headless and SSH sessions** skip installation, because the terminal font
-  normally lives on the client. Set `ATLAS_INSTALL_FONTS=true` to opt in.
+<!-- coderabbit-ai-generated-section:v1:0a97f1fcabde6937e08921ae4fb17ad3e36e026b4506fbcd65066032f201ee85 -->
+
+Interactive desktop bootstrap checks that all four Argon Nerd Font faces are
+registered. If any face is missing, it installs the Regular, Italic, Bold, and
+Bold Italic faces of `MonaspiceAr Nerd Font Mono` from Nerd Fonts 3.5.1, after
+verifying the release archive checksum. On Linux it refreshes the fontconfig
+cache when available.
+
+- **Install location:** a system font directory if writable or authorized by
+  sudo. Cached authorization works without a prompt. An interactive run can ask
+  for your sudo password after verifying the download; if authorization fails,
+  it uses the current user's font directory. `ATLAS_FONT_DIR` overrides this.
+- **Headless and SSH sessions** skip automatic installation, because the
+  terminal font normally lives on the client. Set `ATLAS_INSTALL_FONTS=true` to
+  opt in. Headless font installation never asks for a sudo password; it uses
+  existing authorization or the user directory.
 - **Requirements:** `curl`, `tar` with xz support, and `sha256sum` or `shasum`.
-- **After installing:** select the family in your terminal or editor.
-  Installation does not change application settings.
+- **After installing:** select `MonaspiceAr Nerd Font Mono` in your terminal or
+  editor. Installation does not change application settings or remove other
+  fonts.
 - **Windows:** install the Argon faces from the Nerd Fonts release on the
   machine that runs VS Code.
+
+<!-- /coderabbit-ai-generated:v1 -->
 
 ### Zsh shortcuts
 
