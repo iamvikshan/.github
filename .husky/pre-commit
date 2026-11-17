@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 set -e
-sh ./.husky/identity-guard.sh
+sh ./.husky/sentry.sh
 if command -v bunx >/dev/null 2>&1; then
   echo "Running OXC checks..."
   bunx lint-staged

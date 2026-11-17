@@ -19,7 +19,7 @@ sh -c "$(curl -fsSL https://raw.githubusercontent.com/iamvikshan/.github/main/sc
 
 Run it without prompts (headless defaults, including when stdin is a terminal).
 Package installation may still request sudo authorization. Font installation is
-skipped by default in headless mode; set `ATLAS_INSTALL_FONTS=true` to opt in:
+skipped by default in headless mode; set `INSTALL_FONTS=true` to opt in:
 
 ```sh
 sh -c "$(curl -fsSL https://raw.githubusercontent.com/iamvikshan/.github/main/scripts/bootstrap.sh)" sh --default
@@ -28,7 +28,7 @@ sh -c "$(curl -fsSL https://raw.githubusercontent.com/iamvikshan/.github/main/sc
 Set environment variables on the `sh` command:
 
 ```sh
-ATLAS_INSTALL_FONTS=true sh -c "$(curl -fsSL https://raw.githubusercontent.com/iamvikshan/.github/main/scripts/bootstrap.sh)"
+INSTALL_FONTS=true sh -c "$(curl -fsSL https://raw.githubusercontent.com/iamvikshan/.github/main/scripts/bootstrap.sh)"
 ```
 
 Piping `curl` into `sh` makes stdin non-terminal, so setup uses headless
@@ -61,9 +61,9 @@ sh -c "$(curl -fsSL https://raw.githubusercontent.com/iamvikshan/.github/main/sc
 | Name                   | Applies to     | Effect                                                                                                    |
 | ---------------------- | -------------- | --------------------------------------------------------------------------------------------------------- |
 | `--default`            | `bootstrap.sh` | Headless defaults, no prompts. With `sh -c`, pass `sh --default` after the script string.                 |
-| `ATLAS_INSTALL_FONTS`  | `bootstrap.sh` | `true` installs the font on headless or SSH sessions. `false` skips it on a desktop.                      |
-| `ATLAS_FONT_DIR`       | `fonts.sh`     | Install the font into this directory instead of the default.                                              |
-| `ATLAS_GIT_FILEMODE`   | `git.sh`       | `false` ignores executable-bit changes, `true` honors them. Unset keeps the repository's current setting. |
+| `INSTALL_FONTS`        | `bootstrap.sh` | `true` installs the font on headless or SSH sessions. `false` skips it on a desktop.                      |
+| `FONT_DIR`             | `fonts.sh`     | Install the font into this directory instead of the default.                                              |
+| `GIT_FILEMODE`         | `git.sh`       | `false` ignores executable-bit changes, `true` honors them. Unset keeps the repository's current setting. |
 | `GL_USERNAME`          | `git.sh`       | GitLab account name. Defaults to `vikshan`.                                                               |
 | `GH_TOKEN`, `GL_TOKEN` | `git.sh`       | Initial tokens on the first setup only. See [Credentials](#credentials).                                  |
 
@@ -86,10 +86,10 @@ repository owner or namespace. Tokens must allow the current-user API lookup
 plus whichever repository and signing-key operations you use.
 
 **Where tokens live.** Credentials are saved in
-`~/.local/share/atlas/credentials.json` (file mode `0600`, directory `0700`). It
-is an unencrypted store protected only by filesystem permissions, so anyone who
-controls the host can read it. It is parsed as JSON and never executed. Tokens
-never appear in remote URLs or curl arguments.
+`~/.local/share/sentry/credentials.json` (file mode `0600`, directory `0700`).
+It is an unencrypted store protected only by filesystem permissions, so anyone
+who controls the host can read it. It is parsed as JSON and never executed.
+Tokens never appear in remote URLs or curl arguments.
 
 **How Git uses them.** The installed credential helper reads only this store for
 GitHub and GitLab, including when VS Code invokes Git. It ignores inherited
@@ -114,7 +114,7 @@ Git normally detects whether the filesystem supports executable bits. On an
 affected shared mount or an NTFS checkout, run:
 
 ```sh
-ATLAS_GIT_FILEMODE=false sh -c "$(curl -fsSL https://raw.githubusercontent.com/iamvikshan/.github/main/scripts/git.sh)"
+GIT_FILEMODE=false sh -c "$(curl -fsSL https://raw.githubusercontent.com/iamvikshan/.github/main/scripts/git.sh)"
 ```
 
 Set the variable to `true` to honor executable-bit changes again.
@@ -148,10 +148,10 @@ cache when available.
 - **Install location:** a system font directory if writable or authorized by
   sudo. Cached authorization works without a prompt. An interactive run can ask
   for your sudo password after verifying the download; if authorization fails,
-  it uses the current user's font directory. `ATLAS_FONT_DIR` overrides this.
+  it uses the current user's font directory. `FONT_DIR` overrides this.
 - **Headless and SSH sessions** skip automatic installation, because the
-  terminal font normally lives on the client. Set `ATLAS_INSTALL_FONTS=true` to
-  opt in. Headless font installation never asks for a sudo password; it uses
+  terminal font normally lives on the client. Set `INSTALL_FONTS=true` to opt
+  in. Headless font installation never asks for a sudo password; it uses
   existing authorization or the user directory.
 - **Requirements:** `curl`, `tar` with xz support, and `sha256sum` or `shasum`.
 - **After installing:** select `MonaspiceAr Nerd Font Mono` in your terminal or

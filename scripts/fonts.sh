@@ -40,14 +40,14 @@ fi
 
 case "$(uname -s)" in
     Darwin) system_dir='/Library/Fonts'; user_dir="$HOME/Library/Fonts" ;;
-    Linux) system_dir='/usr/local/share/fonts/atlas-monaspice'; user_dir="${XDG_DATA_HOME:-$HOME/.local/share}/fonts/atlas-monaspice" ;;
+    Linux) system_dir='/usr/local/share/fonts/monaspice'; user_dir="${XDG_DATA_HOME:-$HOME/.local/share}/fonts/monaspice" ;;
     *) printf '[error] Font installation supports Linux and macOS.\n' >&2; exit 1 ;;
 esac
 
 font_sudo=''
 request_sudo=false
-if [ -n "${ATLAS_FONT_DIR:-}" ]; then
-    font_dir=$ATLAS_FONT_DIR
+if [ -n "${FONT_DIR:-}" ]; then
+    font_dir=$FONT_DIR
 elif [ "$(id -u)" -eq 0 ] || [ -w "$system_dir" ]; then
     font_dir=$system_dir
 elif command -v sudo >/dev/null 2>&1 && sudo -n true 2>/dev/null; then
@@ -71,7 +71,7 @@ if [ "$font_registry" = false ] && [ "$all_present" = true ]; then
     exit 0
 fi
 
-tmp_dir=$(mktemp -d "${TMPDIR:-/tmp}/atlas-fonts.XXXXXX")
+tmp_dir=$(mktemp -d "${TMPDIR:-/tmp}/fonts.XXXXXX")
 trap 'rm -rf "$tmp_dir"' EXIT HUP INT TERM
 curl -fL --retry 2 --connect-timeout 15 --max-time 120 "$FONT_URL" -o "$tmp_dir/Monaspace.tar.xz"
 if command -v sha256sum >/dev/null 2>&1; then
