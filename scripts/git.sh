@@ -102,9 +102,9 @@ for arg in "$@"; do
 done
 
 # Reject invalid preferences before trusting a directory or changing Git config.
-case "${ATLAS_GIT_FILEMODE:-}" in
+case "${GIT_FILEMODE:-}" in
     true|false|'') ;;
-    *) log_fail "ATLAS_GIT_FILEMODE must be true or false." ;;
+    *) log_fail "GIT_FILEMODE must be true or false." ;;
 esac
 
 if [ -z "${IS_INTERACTIVE:-}" ]; then
@@ -156,7 +156,7 @@ forge_curl() {
 # 2. Select and verify credentials before changing authentication configuration.
 # This deliberately persists secrets as data, never as executable shell code.
 command -v jq >/dev/null 2>&1 || log_fail "jq is required for credential setup."
-CRED_DIR="$HOME/.local/share/atlas"
+CRED_DIR="$HOME/.local/share/sentry"
 CRED_FILE="$CRED_DIR/credentials.json"
 [ ! -L "$CRED_DIR" ] && [ ! -L "$CRED_FILE" ] || log_fail "credential storage must not be a symlink."
 if [ -e "$CRED_FILE" ]; then
@@ -291,8 +291,8 @@ if [ -n "$REPO_ROOT" ]; then
     git config --local --replace-all user.email "$GIT_AUTHOR_EMAIL"
     # Opt in on NTFS/shared mounts that report spurious executable-bit changes.
     # Otherwise preserve Git's filesystem probe and any existing local preference.
-    case "${ATLAS_GIT_FILEMODE:-}" in
-        true|false) git config --local core.fileMode "$ATLAS_GIT_FILEMODE" ;;
+    case "${GIT_FILEMODE:-}" in
+        true|false) git config --local core.fileMode "$GIT_FILEMODE" ;;
         '') ;;
     esac
     for role in author committer; do
@@ -334,7 +334,7 @@ fi
     mv -f "$cred_tmp" "$CRED_FILE"
 )
 mkdir -p "$HOME/.local/bin"
-CRED_HELPER="$HOME/.local/bin/git-credential-atlas"
+CRED_HELPER="$HOME/.local/bin/git-credential-sentry"
 [ ! -L "$CRED_HELPER" ] || log_fail "credential helper must not be a symlink."
 cat > "$CRED_HELPER" << 'EOF'
 #!/bin/sh
@@ -350,15 +350,15 @@ host="${host%:443}"
 case "$protocol:$host" in
     https:github.com|https:gitlab.com) ;;
     *)
-        printf '[atlas] Refusing credentials for an unsupported protocol or host.\n' >&2
+        printf '[sentry] Refusing credentials for an unsupported protocol or host.\n' >&2
         printf 'quit=true\n\n'; exit 0 ;;
 esac
 credentials="$(jq -er --arg host "$host" '
     .[$host] | select((.username | type) == "string" and (.token | type) == "string") |
     select((.username | test("^[a-zA-Z0-9_.-]+$")) and (.token | test("^[a-zA-Z0-9_.-]+$"))) |
     "username=\(.username)\npassword=\(.token)"
-' "$HOME/.local/share/atlas/credentials.json" 2>/dev/null)" || {
-    printf '[atlas] No usable saved credential for %s (missing, disabled, or invalid). Rerun scripts/git.sh to select and verify a token.\n' "$host" >&2
+' "$HOME/.local/share/sentry/credentials.json" 2>/dev/null)" || {
+    printf '[sentry] No usable saved credential for %s (missing, disabled, or invalid). Rerun scripts/git.sh to select and verify a token.\n' "$host" >&2
     printf 'quit=true\n\n'
     exit 0
 }
@@ -566,7 +566,7 @@ else
 fi
 
 # 10. husky: identity guard (always refreshed) + one guard call in pre-commit
-GUARD_CALL='sh "$(git rev-parse --show-toplevel)/.husky/identity-guard.sh" || exit $?'
+GUARD_CALL='sh "$(git rev-parse --show-toplevel)/.husky/sentry.sh" || exit $?'
 
 # returns 1 on any failure and never exits, so the caller decides
 fetch_executable() {
@@ -597,21 +597,21 @@ shell_shebang_ok() {
 if [ -n "$REPO_ROOT" ]; then
     HUSKY_DIR="$REPO_ROOT/.husky"
     HOOK="$HUSKY_DIR/pre-commit"
-    GUARD="$HUSKY_DIR/identity-guard.sh"
+    GUARD="$HUSKY_DIR/sentry.sh"
     mkdir -p "$HUSKY_DIR"
     [ ! -d "$HOOK" ] || log_fail ".husky/pre-commit is a directory; move it aside and rerun setup."
 
-    git config --local atlas.expected-name "$GIT_AUTHOR_NAME"
-    git config --local atlas.expected-email "$GIT_AUTHOR_EMAIL"
+    git config --local sentry.expected-name "$GIT_AUTHOR_NAME"
+    git config --local sentry.expected-email "$GIT_AUTHOR_EMAIL"
 
     # guard: always refresh; keep an existing copy only if the fetch fails
-    if fetch_executable "${REPO_RAW_ROOT}/.husky/identity-guard.sh" "$GUARD" ".husky/identity-guard.sh"; then
-        log_ok "refreshed .husky/identity-guard.sh."
+    if fetch_executable "${REPO_RAW_ROOT}/.husky/sentry.sh" "$GUARD" ".husky/sentry.sh"; then
+        log_ok "refreshed .husky/sentry.sh."
     elif [ -f "$GUARD" ]; then
-        chmod +x "$GUARD" || log_fail "failed to mark existing identity-guard.sh executable."
-        log_warn "using existing identity-guard.sh, which may be stale."
+        chmod +x "$GUARD" || log_fail "failed to mark existing sentry.sh executable."
+        log_warn "using existing sentry.sh, which may be stale."
     else
-        log_fail "identity-guard.sh unavailable and no local copy exists."
+        log_fail "sentry.sh unavailable and no local copy exists."
     fi
 
     # pre-commit: never overwrite; make sure it calls the guard

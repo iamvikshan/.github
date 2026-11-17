@@ -94,13 +94,13 @@ fi
 # Starship owns the active two-line prompt; collapse only accepted, complete input.
 if (( $+commands[starship] )); then
     eval "$(starship init zsh)"
-    typeset -g _atlas_full_prompt=$PROMPT _atlas_full_rprompt=$RPROMPT
-    _atlas_restore_prompt() {
-        PROMPT=$_atlas_full_prompt
-        RPROMPT=$_atlas_full_rprompt
+    typeset -g _full_prompt=$PROMPT _full_rprompt=$RPROMPT
+    _restore_prompt() {
+        PROMPT=$_full_prompt
+        RPROMPT=$_full_rprompt
         zle .reset-prompt
     }
-    _atlas_accept_line() {
+    _accept_line() {
         if [[ $CONTEXT == start && -n ${BUFFER//[[:space:]]/} ]] &&
            printf '%s\n' "$BUFFER" | command zsh -fn 2>/dev/null; then
             # Render only the character module: no leading blank line in scrollback.
@@ -109,15 +109,15 @@ if (( $+commands[starship] )); then
             RPROMPT=''
             zle .reset-prompt
         fi
-        zle _atlas_original_accept_line
+        zle _original_accept_line
     }
     autoload -Uz add-zle-hook-widget
-    add-zle-hook-widget line-init _atlas_restore_prompt
+    add-zle-hook-widget line-init _restore_prompt
     # Preserve any existing accept-line wrapper; initialization is safe on reload.
-    if (( ! ${+_atlas_transient_installed} )); then
-        zle -A accept-line _atlas_original_accept_line
-        zle -N accept-line _atlas_accept_line
-        typeset -g _atlas_transient_installed=1
+    if (( ! ${+_custom_transient_installed} )); then
+        zle -A accept-line _original_accept_line
+        zle -N accept-line _accept_line
+        typeset -g _custom_transient_installed=1
     fi
 fi
 
@@ -125,9 +125,9 @@ fi
 if [[ "$TERM" == "xterm" || "$TERM" == "xterm-256color" || "$TERM_PROGRAM" == "vscode" ]]; then
     preexec() { print -Pn "\e]0;%n@%m: $1\a" }
     precmd() {
-        local _atlas_status=$?
+        local _status=$?
         print -Pn "\e]0;%n@%m: zsh\a"
-        return $_atlas_status
+        return $_status
     }
 fi
 
@@ -155,18 +155,18 @@ bindkey '^X^E' edit-command-line
 bindkey ' ' magic-space
 bindkey '^_' undo
 bindkey '^L' clear-screen
-_atlas_copybuffer() { print -rn -- "$BUFFER" | pbcopy }
-zle -N _atlas_copybuffer
-bindkey '^X^C' _atlas_copybuffer
+_copybuffer() { print -rn -- "$BUFFER" | pbcopy }
+zle -N _copybuffer
+bindkey '^X^C' _copybuffer
 
 if [[ -z ${EDITOR:-} ]]; then
-    for _atlas_editor in nvim vim vi nano; do
-        if (( $+commands[$_atlas_editor] )); then
-            export EDITOR=$_atlas_editor
+    for _editor in nvim vim vi nano; do
+        if (( $+commands[$_editor] )); then
+            export EDITOR=$_editor
             break
         fi
     done
-    unset _atlas_editor
+    unset _editor
 fi
 if [[ ! -v MANPAGER ]] && (( $+commands[bat] && $+commands[col] )); then
     export MANPAGER="sh -c 'col -bx | bat --language=man --style=plain'"

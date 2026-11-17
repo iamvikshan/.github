@@ -29,3 +29,5 @@ Other files/folders included in this repository are:
 
 - [workflows](./.github/workflows) contains my CI/CD workflows and other
   automation tasks.
+
+- [renovate](./renovate/) contains my Renovate configurations for automating dependency updates.

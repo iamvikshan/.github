@@ -103,7 +103,7 @@ else
 fi
 
 # Fonts are rendered by the client. Install on desktops, or explicitly opt in.
-case "${ATLAS_INSTALL_FONTS:-auto}" in
+case "${INSTALL_FONTS:-auto}" in
     true|1) install_fonts=true ;;
     false|0) install_fonts=false ;;
     auto)
@@ -113,7 +113,7 @@ case "${ATLAS_INSTALL_FONTS:-auto}" in
            { [ "$(uname -s)" = Darwin ] || [ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ]; }; then
             install_fonts=true
         fi ;;
-    *) log_fail "ATLAS_INSTALL_FONTS must be auto, true, or false." ;;
+    *) log_fail "INSTALL_FONTS must be auto, true, or false." ;;
 esac
 if [ "$install_fonts" = true ]; then
     log_exec "checking Argon Nerd Font..."
