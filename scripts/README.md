@@ -1,72 +1,165 @@
-<!-- coderabbit-ai-generated:v1 -->
+# Shell and Git setup scripts
 
-# Shell setup scripts
+Scripts that set up a new machine, container, or Codespace: shell tools, Zsh,
+the Starship prompt, a Nerd Font, and a Git configuration with verified
+credentials and SSH commit signing.
 
-Run `sh scripts/bootstrap.sh` from the checkout to install the shell tools,
-plugins, Zsh configuration, Starship prompt, and Git setup. The script uses the
-local files when available. It updates shell startup files and configures Git
-when run inside a repository. `--default` selects headless defaults. Review the
-root README for credential selection and storage.
+> These scripts are personal configuration. GitHub authentication is pinned to
+> the account `iamvikshan` and GitLab defaults to `vikshan`. To use them for
+> yourself, fork the repository and change those account names.
 
-## Prompt
+## Quick start
+
+Run the full setup in an interactive terminal:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/iamvikshan/.github/main/scripts/bootstrap.sh | sh
+```
+
+Run it without prompts (headless defaults):
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/iamvikshan/.github/main/scripts/bootstrap.sh | sh -s -- --default
+```
+
+Environment variables go on the `sh` side of the pipe, not on `curl`:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/iamvikshan/.github/main/scripts/bootstrap.sh | ATLAS_INSTALL_FONTS=true sh
+```
+
+## What is in this folder
+
+| Script         | Purpose                                                                                                                                                                          |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `bootstrap.sh` | Entry point. Installs shell tools, plugins, Zsh configuration, the Starship prompt, and the font, then runs the Git setup when inside a repository. Updates shell startup files. |
+| `git.sh`       | Git identity, credentials, SSH commit signing, remotes, and hooks. Can be run on its own.                                                                                        |
+| `fonts.sh`     | Installs the Argon Nerd Font. Can be run on its own.                                                                                                                             |
+
+## Run a single part
+
+Git setup only:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/iamvikshan/.github/main/scripts/git.sh | sh
+```
+
+Font only:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/iamvikshan/.github/main/scripts/fonts.sh | sh
+```
+
+## Options and environment variables
+
+| Name                   | Applies to     | Effect                                                                                                    |
+| ---------------------- | -------------- | --------------------------------------------------------------------------------------------------------- |
+| `--default`            | `bootstrap.sh` | Headless defaults, no prompts. Pass it with `sh -s -- --default`.                                         |
+| `ATLAS_INSTALL_FONTS`  | `bootstrap.sh` | `true` installs the font on headless or SSH sessions. `false` skips it on a desktop.                      |
+| `ATLAS_FONT_DIR`       | `fonts.sh`     | Install the font into this directory instead of the default.                                              |
+| `ATLAS_GIT_FILEMODE`   | `git.sh`       | `false` ignores executable-bit changes, `true` honors them. Unset keeps the repository's current setting. |
+| `GL_USERNAME`          | `git.sh`       | GitLab account name. Defaults to `vikshan`.                                                               |
+| `GH_TOKEN`, `GL_TOKEN` | `git.sh`       | Initial tokens on the first setup only. See [Credentials](#credentials).                                  |
+
+## Git setup
+
+### Credentials
+
+In an interactive terminal, `git.sh` asks what to do for GitHub and for GitLab
+separately:
+
+- keep the saved token
+- use the token from the environment
+- enter a new token (input is not echoed)
+- remove or disable the saved credential
+
+Both selected tokens are verified against the forge before any authentication
+setting or stored credential changes. GitHub must authenticate as `iamvikshan`.
+GitLab authenticates as `GL_USERNAME`. These names are independent of the
+repository owner or namespace. Tokens must allow the current-user API lookup
+plus whichever repository and signing-key operations you use.
+
+**Where tokens live.** Credentials are saved in
+`~/.local/share/atlas/credentials.json` (file mode `0600`, directory `0700`). It
+is an unencrypted store protected only by filesystem permissions, so anyone who
+controls the host can read it. It is parsed as JSON and never executed. Tokens
+never appear in remote URLs or curl arguments.
+
+**How Git uses them.** The installed credential helper reads only this store for
+GitHub and GitLab, including when VS Code invokes Git. It ignores inherited
+tokens and blocks fallback to other helpers when credentials are missing. Setup
+resets helper chains and HTTP headers for both hosts in the global configuration
+and in the current repository. It keeps a clean GitHub `origin` and an optional
+GitLab push destination. Repositories with their own local authentication
+overrides need setup run once inside them.
+
+**Headless mode.** An existing store is kept and re-verified, and inherited
+tokens cannot replace it. On the very first setup only, `GH_TOKEN` and
+`GL_TOKEN` provide the initial values. `GITHUB_TOKEN` is never imported. A forge
+you leave disabled needs no token.
+
+**Other notes.** To replace an expired token, run setup again. Removing a saved
+token disables that host through this helper. This configures Git authentication
+only, not `gh` or the GitLab CLI, and no CLI is required.
+
+### Filesystem mode
+
+Git normally detects whether the filesystem supports executable bits. On an
+affected shared mount or an NTFS checkout, run:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/iamvikshan/.github/main/scripts/git.sh | ATLAS_GIT_FILEMODE=false sh
+```
+
+Set the variable to `true` to honor executable-bit changes again.
+
+## Shell experience
+
+### Prompt
 
 The active prompt has context on the first line and input on the second. After a
-command is accepted, the previous prompt collapses to its character; the arrow
-reflects the status of the preceding command. A failed command also shows its
-exit code in the next active prompt. Directory, OS, and repository information
-appear when applicable; runtimes, remote context, background jobs, read-only
-directories, and commands taking at least two seconds appear conditionally.
+command is accepted, the previous prompt collapses to a single character, and
+the arrow shows the status of that command. A failed command also shows its exit
+code in the next active prompt.
 
-The prompt uses Nerd Font symbols. The font must be installed and selected on
-the machine displaying the terminal, including when the shell runs in a remote
-container or over SSH. For VS Code, select the installed family in
+Directory, OS, and repository information appear when applicable. Runtimes,
+remote context, background jobs, read-only directories, and commands that took
+at least two seconds appear only when relevant.
+
+The prompt uses Nerd Font symbols, so the font must be installed and selected on
+the machine that displays the terminal, even when the shell runs in a remote
+container or over SSH. In VS Code, select the installed family in
 `terminal.integrated.fontFamily`, or let it inherit `editor.fontFamily`.
 
-## Argon Nerd Font
+### Argon Nerd Font
 
-Desktop bootstrap checks for an existing Argon Nerd Font and otherwise installs
-the Regular, Italic, Bold, and Bold Italic faces of `MonaspiceAr Nerd Font Mono`
-from Nerd Fonts 3.5.1 after verifying the release archive checksum. On Linux it
-refreshes the fontconfig cache when available. It uses a system font directory
-when writable or passwordless sudo is available, otherwise the current user's
-font directory. Select the family in the terminal or editor; installation does
-not change application settings.
+Desktop bootstrap checks for an existing Argon Nerd Font. If none is found, it
+installs the Regular, Italic, Bold, and Bold Italic faces of
+`MonaspiceAr Nerd Font Mono` from Nerd Fonts 3.5.1, after verifying the release
+archive checksum. On Linux it refreshes the fontconfig cache when available.
 
-Headless and SSH sessions skip automatic installation because the terminal font
-is normally on the client. Set `ATLAS_INSTALL_FONTS=true` to opt in or
-`ATLAS_INSTALL_FONTS=false` to skip on a desktop. Run `sh scripts/fonts.sh`
-directly to install on a local host. Set `ATLAS_FONT_DIR` to choose an
-installation directory. The installer requires curl, tar with xz support, and
-sha256sum or shasum. Windows users can install the Argon faces from the Nerd
-Fonts release on the machine running VS Code.
+- **Install location:** a system font directory if writable or if passwordless
+  sudo is available, otherwise the current user's font directory.
+  `ATLAS_FONT_DIR` overrides this.
+- **Headless and SSH sessions** skip installation, because the terminal font
+  normally lives on the client. Set `ATLAS_INSTALL_FONTS=true` to opt in.
+- **Requirements:** `curl`, `tar` with xz support, and `sha256sum` or `shasum`.
+- **After installing:** select the family in your terminal or editor.
+  Installation does not change application settings.
+- **Windows:** install the Argon faces from the Nerd Fonts release on the
+  machine that runs VS Code.
 
-## Zsh shortcuts
+### Zsh shortcuts
 
-- `Ctrl+R`, `Ctrl+T`, and `Alt+C`: fzf history, file, and directory selection
-  when fzf is installed.
-- `Ctrl+X Ctrl+E`: edit the current command in `$EDITOR`, then inspect it before
-  executing.
-- `Space`: expand history references; `Ctrl+_`: undo; `Ctrl+X Ctrl+C`: copy the
-  command buffer.
-- `zmv -n` previews batch renames; remove `-n` to perform the rename.
-- `cat`, `find`, and `grep` keep their usual meanings; use `bat`, `fd`, and `rg`
-  explicitly. `catp` is available when bat is installed.
+| Key or command              | Action                                                                  |
+| --------------------------- | ----------------------------------------------------------------------- |
+| `Ctrl+R`, `Ctrl+T`, `Alt+C` | fzf history, file, and directory selection (requires fzf)               |
+| `Ctrl+X Ctrl+E`             | Edit the current command in `$EDITOR`, then inspect it before executing |
+| `Space`                     | Expand history references                                               |
+| `Ctrl+_`                    | Undo                                                                    |
+| `Ctrl+X Ctrl+C`             | Copy the command buffer                                                 |
+| `zmv -n`                    | Preview a batch rename. Remove `-n` to perform it.                      |
+| `catp`                      | Available when bat is installed                                         |
 
-## Git filesystem mode
-
-Git normally detects whether the current filesystem supports executable bits.
-For a repository on an affected shared mount or NTFS checkout, run
-`ATLAS_GIT_FILEMODE=false sh scripts/git.sh` to ignore executable-bit changes.
-Set it to `true` to honor those changes. Leaving it unset preserves the
-repository's existing setting.
-
-## Validation
-
-Run `python3 tests/test_git_credentials.py` and
-`python3 tests/test_shell_customization.py` for isolated Git and shell
-regression checks. `python3 tests/test_starship.py` requires Starship; set
-`STARSHIP_BIN` if it is outside PATH. `python3 tests/test_fonts.py` checks
-existing-font detection and checksum rejection. Set `ATLAS_TEST_FONT_ARCHIVE` to
-a downloaded Nerd Fonts 3.5.1 `Monaspace.tar.xz` to also test installation
-without a network connection. These tests use temporary directories and
-synthetic data.
+`cat`, `find`, and `grep` keep their usual meanings. Use `bat`, `fd`, and `rg`
+explicitly.
