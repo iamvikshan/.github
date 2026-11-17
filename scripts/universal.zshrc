@@ -32,7 +32,7 @@ fi
 HISTFILE="$HOME/.zsh_history"
 HISTSIZE=50000
 SAVEHIST=50000
-setopt HIST_IGNORE_ALL_DUPS HIST_FIND_NO_DUPS HIST_REDUCE_BLANKS SHARE_HISTORY INTERACTIVE_COMMENTS
+setopt HIST_IGNORE_ALL_DUPS HIST_IGNORE_SPACE HIST_FIND_NO_DUPS HIST_REDUCE_BLANKS HIST_VERIFY SHARE_HISTORY EXTENDED_HISTORY INTERACTIVE_COMMENTS
 
 # completion initialization (cached daily for instant startup)
 autoload -Uz compinit
@@ -44,11 +44,7 @@ fi
 zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'
 zstyle ':completion:*' menu no
 
-# load standalone zsh plugins
 ZSH_PLUGIN_DIR="$HOME/.local/share/zsh/plugins"
-[[ -f "$ZSH_PLUGIN_DIR/fzf-tab/fzf-tab.plugin.zsh" ]] && source "$ZSH_PLUGIN_DIR/fzf-tab/fzf-tab.plugin.zsh"
-[[ -f "$ZSH_PLUGIN_DIR/zsh-autosuggestions/zsh-autosuggestions.zsh" ]] && source "$ZSH_PLUGIN_DIR/zsh-autosuggestions/zsh-autosuggestions.zsh"
-[[ -f "$ZSH_PLUGIN_DIR/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" ]] && source "$ZSH_PLUGIN_DIR/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
 
 # blood-obsidian autosuggestion tint
 ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=#634F52'
@@ -88,22 +84,59 @@ if (( $+commands[fzf] )); then
     fi
 fi
 
+# fzf must bind Tab before fzf-tab; widget wrappers load after both.
+[[ -f "$ZSH_PLUGIN_DIR/fzf-tab/fzf-tab.plugin.zsh" ]] && source "$ZSH_PLUGIN_DIR/fzf-tab/fzf-tab.plugin.zsh"
+[[ -f "$ZSH_PLUGIN_DIR/zsh-autosuggestions/zsh-autosuggestions.zsh" ]] && source "$ZSH_PLUGIN_DIR/zsh-autosuggestions/zsh-autosuggestions.zsh"
+
 # zoxide smart cd initialization
 (( $+commands[zoxide] )) && eval "$(zoxide init zsh)"
 
-# starship async rust prompt
-(( $+commands[starship] )) && eval "$(starship init zsh)"
+# Starship owns the active two-line prompt; collapse only accepted, complete input.
+if (( $+commands[starship] )); then
+    eval "$(starship init zsh)"
+    typeset -g _atlas_full_prompt=$PROMPT _atlas_full_rprompt=$RPROMPT
+    _atlas_restore_prompt() {
+        PROMPT=$_atlas_full_prompt
+        RPROMPT=$_atlas_full_rprompt
+        zle .reset-prompt
+    }
+    _atlas_accept_line() {
+        if [[ $CONTEXT == start && -n ${BUFFER//[[:space:]]/} ]] &&
+           printf '%s\n' "$BUFFER" | command zsh -fn 2>/dev/null; then
+            # Render only the character module: no leading blank line in scrollback.
+            # Status belongs to the previous command, just like the active prompt.
+            PROMPT="$(starship module character --status="${STARSHIP_CMD_STATUS:-0}" --keymap="${KEYMAP:-main}")"
+            RPROMPT=''
+            zle .reset-prompt
+        fi
+        zle _atlas_original_accept_line
+    }
+    autoload -Uz add-zle-hook-widget
+    add-zle-hook-widget line-init _atlas_restore_prompt
+    # Preserve any existing accept-line wrapper; initialization is safe on reload.
+    if (( ! ${+_atlas_transient_installed} )); then
+        zle -A accept-line _atlas_original_accept_line
+        zle -N accept-line _atlas_accept_line
+        typeset -g _atlas_transient_installed=1
+    fi
+fi
 
 # terminal window title updates
 if [[ "$TERM" == "xterm" || "$TERM" == "xterm-256color" || "$TERM_PROGRAM" == "vscode" ]]; then
     preexec() { print -Pn "\e]0;%n@%m: $1\a" }
-    precmd()  { print -Pn "\e]0;%n@%m: zsh\a" }
+    precmd() {
+        local _atlas_status=$?
+        print -Pn "\e]0;%n@%m: zsh\a"
+        return $_atlas_status
+    }
 fi
 
 # environment-aware clipboard (macos, wayland/cosmic, x11, and ssh/containers via osc 52)
 if [[ "$(uname)" != "Darwin" ]]; then
     pbcopy() {
-        if [[ -n "${WAYLAND_DISPLAY}" ]] && (( $+commands[wl-copy] )); then
+        if (( $+commands[clip.exe] )); then
+            clip.exe
+        elif [[ -n "${WAYLAND_DISPLAY}" ]] && (( $+commands[wl-copy] )); then
             wl-copy
         elif [[ -n "${DISPLAY}" ]] && (( $+commands[xclip] )); then
             xclip -selection clipboard
@@ -115,5 +148,47 @@ if [[ "$(uname)" != "Darwin" ]]; then
     }
 fi
 
+# Interactive editing helpers. Saving in the editor returns for inspection.
+autoload -Uz edit-command-line zmv
+zle -N edit-command-line
+bindkey '^X^E' edit-command-line
+bindkey ' ' magic-space
+bindkey '^_' undo
+bindkey '^L' clear-screen
+_atlas_copybuffer() { print -rn -- "$BUFFER" | pbcopy }
+zle -N _atlas_copybuffer
+bindkey '^X^C' _atlas_copybuffer
+
+if [[ -z ${EDITOR:-} ]]; then
+    for _atlas_editor in nvim vim vi nano; do
+        if (( $+commands[$_atlas_editor] )); then
+            export EDITOR=$_atlas_editor
+            break
+        fi
+    done
+    unset _atlas_editor
+fi
+if [[ ! -v MANPAGER ]] && (( $+commands[bat] && $+commands[col] )); then
+    export MANPAGER="sh -c 'col -bx | bat --language=man --style=plain'"
+fi
+
+# Syntax highlighting must see all custom widgets.
+[[ -f "$ZSH_PLUGIN_DIR/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" ]] && source "$ZSH_PLUGIN_DIR/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
+
 # source centralized aliases
 [[ -f "$HOME/.config/zsh/aliases.sh" ]] && source "$HOME/.config/zsh/aliases.sh"
+
+# compile zsh configs and plugins to bytecode (.zwc) in background when newer than cache
+{
+  typeset _zfile
+  for _zfile in \
+    "$HOME/.zshrc" \
+    "$ZSH_PLUGIN_DIR/fzf-tab/fzf-tab.plugin.zsh" \
+    "$HOME/.config/zsh/aliases.sh" \
+    "$HOME/.local/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh" \
+    "$HOME/.local/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"; do
+    if [[ -f "$_zfile" && ( ! -f "${_zfile}.zwc" || "$_zfile" -nt "${_zfile}.zwc" ) ]]; then
+      zcompile "$_zfile" 2>/dev/null
+    fi
+  done
+} &!

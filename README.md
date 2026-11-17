@@ -7,8 +7,9 @@
 
 # 🏥 Vikshan's `.github`
 
-This repository contains the common community health files that I (vikshan), use
-for my projects. These policies are adopted across my repos:
+This repository contains my personal scripts, dotfiles, workflows and the common
+community health files that I (vikshan), use for my projects. These policies are
+adopted across my repos:
 
 - [Code of Conduct](./.github/CODE_OF_CONDUCT.md)
 - [Contributing Guidelines](./.github/CONTRIBUTING.md)
@@ -16,7 +17,15 @@ for my projects. These policies are adopted across my repos:
 - [Support](./.github/SUPPORT.md)
 - [Contributor License Agreement](./.github/CLA.md)
 
-Other files included in this repository are:
+Other files/folders included in this repository are:
 
 - [cla.json](./signatures/cla.json) contains the list of users who have signed
   my CLA
+
+- [scripts](./scripts) contains my personal scripts for shell setup, Git
+  authentication, and other utilities.
+
+- [actions](./.github/actions) contains my reusable GitHub Actions.
+
+- [workflows](./.github/workflows) contains my CI/CD workflows and other
+  automation tasks.

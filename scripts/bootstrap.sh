@@ -102,6 +102,34 @@ else
     run_remote_script "packages.sh"
 fi
 
+# Fonts are rendered by the client. Install on desktops, or explicitly opt in.
+case "${ATLAS_INSTALL_FONTS:-auto}" in
+    true|1) install_fonts=true ;;
+    false|0) install_fonts=false ;;
+    auto)
+        install_fonts=false
+        if [ "$IS_INTERACTIVE" = true ] &&
+           [ -z "${CODESPACES:-}" ] && [ -z "${SSH_CONNECTION:-}" ] &&
+           { [ "$(uname -s)" = Darwin ] || [ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ]; }; then
+            install_fonts=true
+        fi ;;
+    *) log_fail "ATLAS_INSTALL_FONTS must be auto, true, or false." ;;
+esac
+if [ "$install_fonts" = true ]; then
+    log_exec "checking Argon Nerd Font..."
+    if [ -f "$SCRIPT_DIR/fonts.sh" ]; then
+        sh "$SCRIPT_DIR/fonts.sh" || log_warn "font setup failed; configure it on your terminal host."
+    else
+        font_script="$(mktemp "${TMPDIR:-/tmp}/fonts.sh.XXXXXX")"
+        TMP_FILES="$TMP_FILES $font_script"
+        if curl -fsSL "$REPO_RAW_BASE/fonts.sh" -o "$font_script" && [ -s "$font_script" ]; then
+            sh "$font_script" || log_warn "font setup failed; configure it on your terminal host."
+        else
+            log_warn "font installer unavailable; configure the font on your terminal host."
+        fi
+    fi
+fi
+
 # 6. install standalone zsh plugins (zero oh-my-zsh overhead)
 log_exec "syncing standalone zsh plugins..."
 PLUGIN_DIR="$HOME/.local/share/zsh/plugins"
@@ -177,6 +205,15 @@ done
 
 ZSH_PATH="$(command -v zsh)"
 CURRENT_USER="${USER:-$(id -un)}"
+
+# ensure zsh path is whitelisted in /etc/shells before chsh (prevents macos/pam login lockout)
+if [ -f /etc/shells ] && ! grep -qxF "$ZSH_PATH" /etc/shells 2>/dev/null; then
+    if [ -w /etc/shells ] || [ -n "$SUDO" ]; then
+        printf '\n%s\n' "$ZSH_PATH" | $SUDO tee -a /etc/shells >/dev/null || \
+            log_warn "could not register $ZSH_PATH in /etc/shells."
+    fi
+fi
+
 if [ "$SHELL" != "$ZSH_PATH" ]; then
     if command -v chsh >/dev/null 2>&1; then
         $SUDO chsh -s "$ZSH_PATH" "$CURRENT_USER" 2>/dev/null || chsh -s "$ZSH_PATH" 2>/dev/null || true
