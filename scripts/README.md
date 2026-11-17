@@ -18,8 +18,8 @@ sh -c "$(curl -fsSL https://raw.githubusercontent.com/iamvikshan/.github/main/sc
 ```
 
 Run it without prompts (headless defaults, including when stdin is a terminal).
-Font installation writes to a system directory when it is writable or sudo is
-authorized, and falls back to the user font directory otherwise:
+Package installation may still request sudo authorization. Font installation is
+skipped by default in headless mode; set `ATLAS_INSTALL_FONTS=true` to opt in:
 
 ```sh
 sh -c "$(curl -fsSL https://raw.githubusercontent.com/iamvikshan/.github/main/scripts/bootstrap.sh)" sh --default

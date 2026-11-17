@@ -85,10 +85,9 @@ elif command -v apk >/dev/null 2>&1; then
         zoxide \
         fzf \
         delta \
-        btop \
-        starship
+        btop
 
-    # install or update starship
+    # install or update starship via official installer (keeps version consistent across distros)
     ensure_starship
 
 elif command -v brew >/dev/null 2>&1; then
