@@ -9,6 +9,7 @@ set -e
 GIT_AUTHOR_NAME="iamvikshan"
 GIT_AUTHOR_EMAIL="vixshan@gmail.com"
 GH_USERNAME="iamvikshan"
+GL_USERNAME="${GL_USERNAME:-vikshan}"
 DEFAULT_GL_NAMESPACE="vikshan"
 MAX_SSH_KEYS=100
 REPO_RAW_ROOT="https://raw.githubusercontent.com/iamvikshan/.github/main"
@@ -40,6 +41,8 @@ extract_forge_coords() {
         http://*)  no_scheme="${no_scheme#http://}" ;;
         ssh://*)   no_scheme="${no_scheme#ssh://}" ;;
     esac
+
+    no_scheme="${no_scheme##*@}"
 
     case "$no_scheme" in
         github.com[:/]*|*@github.com[:/]*)
@@ -121,10 +124,86 @@ fi
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || true)"
 [ "$TRUST_ONLY" = "false" ] || exit 0
 
-# 2. credentials come only from the calling environment; never cache secrets.
-GH_TOKEN="${GH_TOKEN:-}"
-GL_TOKEN="${GL_TOKEN:-}"
+forge_curl() {
+    forge="$1"
+    shift
+    case "$forge" in
+        github) auth_header="Authorization: Bearer $GH_TOKEN" ;;
+        gitlab) auth_header="PRIVATE-TOKEN: $GL_TOKEN" ;;
+    esac
+    case "$auth_header" in
+        *[![:print:]]*|*'"'*|*'\'*) log_warn "invalid token characters" >&2; return 1 ;;
+    esac
+    printf 'header = "%s"\n' "$auth_header" | curl -q --config - "$@"
+}
+
+# 2. Select and verify credentials before changing authentication configuration.
+# This deliberately persists secrets as data, never as executable shell code.
+command -v jq >/dev/null 2>&1 || log_fail "jq is required for credential setup."
+CRED_DIR="$HOME/.local/share/atlas"
+CRED_FILE="$CRED_DIR/credentials.json"
+[ ! -L "$CRED_DIR" ] && [ ! -L "$CRED_FILE" ] || log_fail "credential storage must not be a symlink."
+if [ -e "$CRED_FILE" ]; then
+    jq -e 'type == "object"' "$CRED_FILE" >/dev/null || log_fail "invalid credential file."
+fi
+
+choose_token() {
+    token_host="$1"
+    supplied_token="$2"
+    selected_token=""
+    if [ -f "$CRED_FILE" ]; then
+        selected_token="$(jq -r --arg host "$token_host" '.[$host].token // empty' "$CRED_FILE")"
+    fi
+    if [ "$IS_INTERACTIVE" = true ]; then
+        while :; do
+            printf '%s: [K]eep saved, use [E]nvironment, [N]ew token, [R]emove/disable: ' "$token_host"
+            read -r token_choice < /dev/tty || log_fail "credential selection cancelled."
+            case "$(lowercase "${token_choice:-k}")" in
+                k) break ;;
+                e) selected_token="$supplied_token"; break ;;
+                r) selected_token=""; break ;;
+                n)
+                    tty_state="$(stty -g < /dev/tty)" || log_fail "cannot read terminal state."
+                    trap 'stty "$tty_state" < /dev/tty; exit 130' INT TERM HUP
+                    printf 'token (hidden): '
+                    stty -echo < /dev/tty
+                    token_read=0
+                    IFS= read -r selected_token < /dev/tty || token_read=$?
+                    stty "$tty_state" < /dev/tty
+                    trap - INT TERM HUP
+                    printf '\n'
+                    [ "$token_read" -eq 0 ] || log_fail "token entry cancelled."
+                    break ;;
+                *) log_warn "choose K, E, N, or R." ;;
+            esac
+        done
+    elif [ ! -f "$CRED_FILE" ]; then
+        selected_token="$supplied_token"
+    fi
+    case "$selected_token" in
+        *[!a-zA-Z0-9_.-]*) log_fail "invalid token characters." ;;
+    esac
+}
+
+choose_token github.com "${GH_TOKEN:-}"
+GH_TOKEN="$selected_token"
+choose_token gitlab.com "${GL_TOKEN:-}"
+GL_TOKEN="$selected_token"
+unset GITHUB_TOKEN supplied_token selected_token
 export GH_TOKEN GL_TOKEN
+
+verify_account() {
+    [ -n "$2" ] || return 0
+    account_json="$(forge_curl "$1" -fsS --max-time 30 "$3")" || log_fail "$1 token verification failed."
+    actual_user="$(printf '%s' "$account_json" | jq -er "$4")" || log_fail "$1 account response invalid."
+    [ "$(lowercase "$actual_user")" = "$(lowercase "$5")" ] || log_fail "$1 token belongs to $actual_user; expected $5."
+    log_ok "$1 authenticated as $actual_user."
+}
+case "$GH_USERNAME:$GL_USERNAME" in
+    *[!a-zA-Z0-9_.:-]*) log_fail "invalid expected account name." ;;
+esac
+verify_account github "$GH_TOKEN" https://api.github.com/user '.login' "$GH_USERNAME"
+verify_account gitlab "$GL_TOKEN" https://gitlab.com/api/v4/user '.username' "$GL_USERNAME"
 
 # 3. repository context
 
@@ -219,36 +298,66 @@ if command -v delta >/dev/null 2>&1; then
     log_ok "git-delta blood-obsidian pager configured."
 fi
 
-# 6. install secure credential helper (keeps raw tokens out of .git/config on ntfs)
+# 6. Persist verified credentials and install an authoritative Git helper.
+# Filesystem permissions protect this unencrypted store; no token enters a URL.
+(
+    umask 077
+    mkdir -p "$CRED_DIR"
+    chmod 700 "$CRED_DIR"
+    cred_tmp="$(mktemp "$CRED_DIR/credentials.XXXXXX")"
+    trap 'rm -f "$cred_tmp"' EXIT HUP INT TERM
+    printf '%s\n' "$GH_USERNAME" "$GH_TOKEN" "$GL_USERNAME" "$GL_TOKEN" |
+        jq -Rn '[inputs] | {"github.com": {username: .[0], token: .[1]}, "gitlab.com": {username: .[2], token: .[3]}}' > "$cred_tmp"
+    chmod 600 "$cred_tmp"
+    mv -f "$cred_tmp" "$CRED_FILE"
+)
 mkdir -p "$HOME/.local/bin"
 CRED_HELPER="$HOME/.local/bin/git-credential-atlas"
+[ ! -L "$CRED_HELPER" ] || log_fail "credential helper must not be a symlink."
 cat > "$CRED_HELPER" << 'EOF'
 #!/bin/sh
-[ "$1" = "get" ] || exit 0
-
-host=""
+# Read-only: only setup may replace verified credentials. Ignore ambient tokens.
+[ "$1" = get ] || exit 0
+host=""; protocol=""
 while IFS='=' read -r key val; do
-    [ -z "$key" ] && break
-    [ "$key" = "host" ] && host="$val"
+    [ -n "$key" ] || break
+    case "$key" in host) host="$val" ;; protocol) protocol="$val" ;; esac
 done
-
-case "$host" in
-    github.com)
-        if [ -n "${GH_TOKEN:-}" ]; then
-            printf "protocol=https\nhost=github.com\nusername=%s\npassword=%s\n\n" "${GH_OWNER:-iamvikshan}" "$GH_TOKEN"
-        fi
-        ;;
-    gitlab.com)
-        if [ -n "${GL_TOKEN:-}" ]; then
-            printf "protocol=https\nhost=gitlab.com\nusername=oauth2\npassword=%s\n\n" "$GL_TOKEN"
-        fi
-        ;;
+case "$protocol:$host" in
+    https:github.com|https:gitlab.com) ;;
+    *) printf 'quit=true\n\n'; exit 0 ;;
 esac
+credentials="$(jq -er --arg host "$host" '
+    .[$host] | select((.username | type) == "string" and (.token | type) == "string") |
+    select((.username | test("^[a-zA-Z0-9_.-]+$")) and (.token | test("^[a-zA-Z0-9_.-]+$"))) |
+    "username=\(.username)\npassword=\(.token)"
+' "$HOME/.local/share/atlas/credentials.json" 2>/dev/null)" || {
+    printf 'quit=true\n\n'
+    exit 0
+}
+printf '%s\n\n' "$credentials"
 EOF
 chmod 700 "$CRED_HELPER"
-git config --global --replace-all credential.https://github.com.helper "$CRED_HELPER"
-git config --global --replace-all credential.https://gitlab.com.helper "$CRED_HELPER"
-log_ok "credential helper bound (zero plaintext tokens in .git/config)."
+# Empty helper entries reset inherited helpers. Apply last in the local scope too.
+for auth_host in github.com gitlab.com; do
+    for auth_scope in --global --local; do
+        [ "$auth_scope" != --local ] || [ -n "$REPO_ROOT" ] || continue
+        # Remove host/path-specific helpers and headers that could override ours.
+        git config --name-only --get-regexp '^(credential|http)\.https://.*' 2>/dev/null |
+        while IFS= read -r auth_key; do
+            case "$auth_key" in
+                credential.https://"$auth_host".helper|credential.https://"$auth_host"/*.helper)
+                    git config "$auth_scope" --unset-all "$auth_key" || true ;;
+                http.https://"$auth_host".extraheader|http.https://"$auth_host"/*.extraheader)
+                    git config "$auth_scope" --replace-all "$auth_key" '' ;;
+            esac
+        done
+        git config "$auth_scope" --add "credential.https://$auth_host.helper" ''
+        git config "$auth_scope" --add "credential.https://$auth_host.helper" '!"'"$CRED_HELPER"'"'
+        git config "$auth_scope" --replace-all "http.https://$auth_host/.extraHeader" ''
+    done
+done
+log_ok "verified credentials saved privately; Git ignores inherited tokens for both forges."
 
 # 7. setup ssh commit signing key
 KEY_NAME="${HOST_ID}-git-signing"
@@ -284,19 +393,6 @@ fi
 
 # 8. register ssh signing key via forge apis & prune overflow
 PUB_KEY="$(cat "${KEY_PATH}.pub")"
-
-forge_curl() {
-    forge="$1"
-    shift
-    case "$forge" in
-        github) auth_header="Authorization: Bearer $GH_TOKEN" ;;
-        gitlab) auth_header="PRIVATE-TOKEN: $GL_TOKEN" ;;
-    esac
-    case "$auth_header" in
-        *[![:print:]]*|*'"'*|*'\'*) log_warn "invalid token characters" >&2; return 1 ;;
-    esac
-    printf 'header = "%s"\n' "$auth_header" | curl --config - "$@"
-}
 
 # Fetch every page before deleting anything, so failed/partial lists cannot prune.
 list_keys() {
