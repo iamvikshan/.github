@@ -26,7 +26,8 @@ if command -v fc-list >/dev/null 2>&1; then
         printf '[info] All four Argon Nerd Font faces are already registered.\n'
         exit 0
     fi
-elif [ "$(uname -s)" = Darwin ] && command -v system_profiler >/dev/null 2>&1; then
+fi
+if [ "$(uname -s)" = Darwin ] && command -v system_profiler >/dev/null 2>&1; then
     font_registry=true
     if system_profiler SPFontsDataType 2>/dev/null | awk '
         /Family:/ { family = $0; sub(/^.*Family: */, "", family) }

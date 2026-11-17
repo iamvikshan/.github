@@ -456,7 +456,8 @@ prune_github_keys() {
     if [ "$key_count" -gt "$MAX_SSH_KEYS" ]; then
         delete_count=$((key_count - MAX_SSH_KEYS))
         log_warn "pruning oldest $delete_count github signing keys..."
-        old_keys="$(printf '%s' "$keys_json" | jq -r "sort_by(.created_at) | .[0:${delete_count}] | .[].id")"
+        old_keys="$(printf '%s' "$keys_json" | jq -r --arg pub "$PUB_KEY" \
+            '[.[] | select(.key != $pub)] | sort_by(.created_at) | .[0:'"${delete_count}"'] | .[].id')"
         for key_id in $old_keys; do
             forge_curl github -fsS -o /dev/null -X DELETE \
                 -H "Accept: application/vnd.github+json" \
@@ -477,7 +478,8 @@ prune_gitlab_keys() {
     if [ "$key_count" -gt "$MAX_SSH_KEYS" ]; then
         delete_count=$((key_count - MAX_SSH_KEYS))
         log_warn "pruning oldest $delete_count gitlab signing keys..."
-        old_keys="$(printf '%s' "$keys_json" | jq -r "[.[] | select(.usage_type == \"signing\")] | sort_by(.created_at) | .[0:${delete_count}] | .[].id")"
+        old_keys="$(printf '%s' "$keys_json" | jq -r --arg pub "$PUB_KEY" \
+            '[.[] | select(.usage_type == "signing" and .key != $pub)] | sort_by(.created_at) | .[0:'"${delete_count}"'] | .[].id')"
         for key_id in $old_keys; do
             forge_curl gitlab -s -o /dev/null -X DELETE \
                 "https://gitlab.com/api/v4/user/keys/${key_id}" || log_warn "failed to delete gitlab signing key."

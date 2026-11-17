@@ -10,10 +10,6 @@ credentials and SSH commit signing.
 
 ## Quick start
 
-<!-- coderabbit-ai-generated:v1 -->
-
-<!-- coderabbit-ai-generated-section:v1:21e2461651ae7dccfcdabe1c16eae45b773ce4d8cf08124bd1b10d082b3643ef -->
-
 Run the full setup in an interactive terminal (stdin stays attached for
 prompts):
 
@@ -21,7 +17,9 @@ prompts):
 sh -c "$(curl -fsSL https://raw.githubusercontent.com/iamvikshan/.github/main/scripts/bootstrap.sh)"
 ```
 
-Run it without prompts (headless defaults, including when stdin is a terminal):
+Run it without prompts (headless defaults, including when stdin is a terminal;
+root privileges or existing sudo authorization are still required for a
+system-wide font install):
 
 ```sh
 sh -c "$(curl -fsSL https://raw.githubusercontent.com/iamvikshan/.github/main/scripts/bootstrap.sh)" sh --default
@@ -36,8 +34,6 @@ ATLAS_INSTALL_FONTS=true sh -c "$(curl -fsSL https://raw.githubusercontent.com/i
 Piping `curl` into `sh` makes stdin non-terminal, so setup uses headless
 defaults.
 
-<!-- /coderabbit-ai-generated:v1 -->
-
 ## What is in this folder
 
 | Script         | Purpose                                                                                                                                                                          |
@@ -47,10 +43,6 @@ defaults.
 | `fonts.sh`     | Installs the Argon Nerd Font. Can be run on its own.                                                                                                                             |
 
 ## Run a single part
-
-<!-- coderabbit-ai-generated:v1 -->
-
-<!-- coderabbit-ai-generated-section:v1:0229aad41c4ca4e03cec1a82eacf57264be6cba80c70e6f0e36496c23017d3ec -->
 
 Git setup only:
 
@@ -64,13 +56,7 @@ Font only:
 sh -c "$(curl -fsSL https://raw.githubusercontent.com/iamvikshan/.github/main/scripts/fonts.sh)"
 ```
 
-<!-- /coderabbit-ai-generated:v1 -->
-
 ## Options and environment variables
-
-<!-- coderabbit-ai-generated:v1 -->
-
-<!-- coderabbit-ai-generated-section:v1:2cb439d44f76038c2310c0e00f4aaeaca9abd11660f239c839d4419fb1e6abca -->
 
 | Name                   | Applies to     | Effect                                                                                                    |
 | ---------------------- | -------------- | --------------------------------------------------------------------------------------------------------- |
@@ -80,8 +66,6 @@ sh -c "$(curl -fsSL https://raw.githubusercontent.com/iamvikshan/.github/main/sc
 | `ATLAS_GIT_FILEMODE`   | `git.sh`       | `false` ignores executable-bit changes, `true` honors them. Unset keeps the repository's current setting. |
 | `GL_USERNAME`          | `git.sh`       | GitLab account name. Defaults to `vikshan`.                                                               |
 | `GH_TOKEN`, `GL_TOKEN` | `git.sh`       | Initial tokens on the first setup only. See [Credentials](#credentials).                                  |
-
-<!-- /coderabbit-ai-generated:v1 -->
 
 ## Git setup
 
@@ -129,15 +113,9 @@ only, not `gh` or the GitLab CLI, and no CLI is required.
 Git normally detects whether the filesystem supports executable bits. On an
 affected shared mount or an NTFS checkout, run:
 
-<!-- coderabbit-ai-generated:v1 -->
-
-<!-- coderabbit-ai-generated-section:v1:0edc150fbf7beb37a1da6aae17e529f4803c7d85d61f0f678920959609ea8c54 -->
-
 ```sh
 ATLAS_GIT_FILEMODE=false sh -c "$(curl -fsSL https://raw.githubusercontent.com/iamvikshan/.github/main/scripts/git.sh)"
 ```
-
-<!-- /coderabbit-ai-generated:v1 -->
 
 Set the variable to `true` to honor executable-bit changes again.
 
@@ -145,16 +123,10 @@ Set the variable to `true` to honor executable-bit changes again.
 
 ### Prompt
 
-<!-- coderabbit-ai-generated:v1 -->
-
-<!-- coderabbit-ai-generated-section:v1:a60fe905690686b905e06d93486ce15511f3dc66c2472fb65b4750f2dcee94d0 -->
-
 The active prompt has context on the first line and input on the second. After a
 command is accepted, the previous prompt collapses to a single character, and
 the arrow shows the status of the preceding command. A failed command also shows
 its exit code in the next active prompt.
-
-<!-- /coderabbit-ai-generated:v1 -->
 
 Directory, OS, and repository information appear when applicable. Runtimes,
 remote context, background jobs, read-only directories, and commands that took
@@ -166,10 +138,6 @@ container or over SSH. In VS Code, select the installed family in
 `terminal.integrated.fontFamily`, or let it inherit `editor.fontFamily`.
 
 ### Argon Nerd Font
-
-<!-- coderabbit-ai-generated:v1 -->
-
-<!-- coderabbit-ai-generated-section:v1:0a97f1fcabde6937e08921ae4fb17ad3e36e026b4506fbcd65066032f201ee85 -->
 
 Interactive desktop bootstrap checks that all four Argon Nerd Font faces are
 registered. If any face is missing, it installs the Regular, Italic, Bold, and
@@ -191,8 +159,6 @@ cache when available.
   fonts.
 - **Windows:** install the Argon faces from the Nerd Fonts release on the
   machine that runs VS Code.
-
-<!-- /coderabbit-ai-generated:v1 -->
 
 ### Zsh shortcuts
 

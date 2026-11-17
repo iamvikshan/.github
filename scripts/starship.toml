@@ -1,4 +1,6 @@
 # Compact blood-obsidian prompt; previous prompts collapse in Zsh scrollback.
+"$schema" = 'https://starship.rs/config-schema.json'
+
 add_newline = true
 command_timeout = 500
 palette = "blood_obsidian"
@@ -70,7 +72,17 @@ format = "[$path]($style)[$read_only]($read_only_style) "
 [git_branch]
 symbol = " "
 style = "bold accent"
+truncation_length = 24
+truncation_symbol = "…"
 format = "[$symbol$branch]($style) "
+
+[git_state]
+style = "bold warning"
+format = '\([$state( $progress_current/$progress_total)]($style)\) '
+
+[git_commit]
+style = "muted"
+format = '[\($hash\)]($style) '
 
 [git_status]
 style = "bold warning"
@@ -81,23 +93,12 @@ diverged = "⇕⇡${ahead_count}⇣${behind_count} "
 untracked = "?${count} "
 stashed = "*${count} "
 modified = "!${count} "
+renamed = "»${count} "
 staged = "+${count} "
 deleted = "✘${count} "
 format = "([$all_status$ahead_behind]($style))"
 
 [nodejs]
-# Keep Bun/Deno projects quiet on older Starship releases too.
-detect_files = [
-  "package.json",
-  ".node-version",
-  ".nvmrc",
-  "!bun.lock",
-  "!bun.lockb",
-  "!bunfig.toml",
-  "!deno.json",
-  "!deno.jsonc",
-  "!deno.lock",
-]
 symbol = " "
 style = "muted"
 format = "[$symbol($version )]($style)"
