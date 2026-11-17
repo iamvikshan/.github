@@ -601,8 +601,8 @@ if [ -n "$REPO_ROOT" ]; then
     mkdir -p "$HUSKY_DIR"
     [ ! -d "$HOOK" ] || log_fail ".husky/pre-commit is a directory; move it aside and rerun setup."
 
-    git config --local expected-name "$GIT_AUTHOR_NAME"
-    git config --local expected-email "$GIT_AUTHOR_EMAIL"
+    git config --local sentry.expected-name "$GIT_AUTHOR_NAME"
+    git config --local sentry.expected-email "$GIT_AUTHOR_EMAIL"
 
     # guard: always refresh; keep an existing copy only if the fetch fails
     if fetch_executable "${REPO_RAW_ROOT}/.husky/sentry.sh" "$GUARD" ".husky/sentry.sh"; then

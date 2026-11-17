@@ -8,14 +8,14 @@ if [ "${CI:-}" = "true" ] || [ -n "${GITHUB_ACTIONS:-}" ] || [ -n "${GITLAB_CI:-
 fi
 
 # read the expected identity from local git config (set by bootstrap)
-EXPECTED_NAME=$(git config --local expected-name 2>/dev/null || printf '')
-EXPECTED_EMAIL=$(git config --local expected-email 2>/dev/null || printf '')
+EXPECTED_NAME=$(git config --local sentry.expected-name 2>/dev/null || printf '')
+EXPECTED_EMAIL=$(git config --local sentry.expected-email 2>/dev/null || printf '')
 
 if [ -z "$EXPECTED_NAME" ] || [ -z "$EXPECTED_EMAIL" ]; then
   echo "[error] expected identity not configured."
   echo "   run 'bun bs' to bootstrap your environment, or set manually:"
-  echo "     git config --local expected-name \"Your Name\""
-  echo "     git config --local expected-email \"you@example.com\""
+  echo "     git config --local sentry.expected-name \"Your Name\""
+  echo "     git config --local sentry.expected-email \"you@example.com\""
   exit 1
 fi
 

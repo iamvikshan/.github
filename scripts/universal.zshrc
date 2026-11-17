@@ -114,10 +114,10 @@ if (( $+commands[starship] )); then
     autoload -Uz add-zle-hook-widget
     add-zle-hook-widget line-init _restore_prompt
     # Preserve any existing accept-line wrapper; initialization is safe on reload.
-    if (( ! ${+_transient_installed} )); then
+    if (( ! ${+_custom_transient_installed} )); then
         zle -A accept-line _original_accept_line
         zle -N accept-line _accept_line
-        typeset -g _transient_installed=1
+        typeset -g _custom_transient_installed=1
     fi
 fi
 
