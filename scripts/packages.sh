@@ -37,7 +37,7 @@ install_starship() {
 ensure_starship() {
     install_starship && return 0
 
-    command -v starship >/dev/null 2>&1 || {
+    command -v starship >/dev/null 2>&1 || [ -x "$HOME/.local/bin/starship" ] || {
         printf "[error] starship install failed and none is present.\n" >&2
         exit 1
     }
@@ -85,7 +85,8 @@ elif command -v apk >/dev/null 2>&1; then
         zoxide \
         fzf \
         delta \
-        btop
+        btop \
+        starship
 
     # install or update starship
     ensure_starship

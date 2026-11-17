@@ -17,9 +17,9 @@ prompts):
 sh -c "$(curl -fsSL https://raw.githubusercontent.com/iamvikshan/.github/main/scripts/bootstrap.sh)"
 ```
 
-Run it without prompts (headless defaults, including when stdin is a terminal;
-root privileges or existing sudo authorization are still required for a
-system-wide font install):
+Run it without prompts (headless defaults, including when stdin is a terminal).
+Font installation writes to a system directory when it is writable or sudo is
+authorized, and falls back to the user font directory otherwise:
 
 ```sh
 sh -c "$(curl -fsSL https://raw.githubusercontent.com/iamvikshan/.github/main/scripts/bootstrap.sh)" sh --default

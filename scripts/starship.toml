@@ -12,6 +12,8 @@ $hostname\
 ${env_var.CODESPACES}\
 $directory\
 $git_branch\
+$git_state\
+$git_commit\
 $git_status\
 $nodejs\
 $bun\
