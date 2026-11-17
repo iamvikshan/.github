@@ -273,6 +273,13 @@ git config --global pull.rebase true
 if [ -n "$REPO_ROOT" ]; then
     git config --local --replace-all user.name "$GIT_AUTHOR_NAME"
     git config --local --replace-all user.email "$GIT_AUTHOR_EMAIL"
+    # Opt in on NTFS/shared mounts that report spurious executable-bit changes.
+    # Otherwise preserve Git's filesystem probe and any existing local preference.
+    case "${ATLAS_GIT_FILEMODE:-}" in
+        true|false) git config --local core.fileMode "$ATLAS_GIT_FILEMODE" ;;
+        '') ;;
+        *) log_fail "ATLAS_GIT_FILEMODE must be true or false." ;;
+    esac
     for role in author committer; do
         git config --local --replace-all "$role.name" "$GIT_AUTHOR_NAME"
         git config --local --replace-all "$role.email" "$GIT_AUTHOR_EMAIL"
@@ -353,7 +360,9 @@ for auth_host in github.com gitlab.com; do
             esac
         done
         git config "$auth_scope" --add "credential.https://$auth_host.helper" ''
-        git config "$auth_scope" --add "credential.https://$auth_host.helper" '!"'"$CRED_HELPER"'"'
+        # Quote as shell data: Git executes ! helpers through a second shell.
+        helper_path_quoted="$(printf '%s' "$CRED_HELPER" | sed "s/'/'\\\\''/g")"
+        git config "$auth_scope" --add "credential.https://$auth_host.helper" "!'$helper_path_quoted'"
         git config "$auth_scope" --replace-all "http.https://$auth_host/.extraHeader" ''
     done
 done

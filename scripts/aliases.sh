@@ -12,15 +12,12 @@ if (( $+commands[eza] )); then
     alias lta='eza --icons --tree --level=3 -a'
 fi
 
-# bat (replaces cat)
+# explicit pretty-printing; preserve standard cat/grep/find semantics
 if (( $+commands[bat] )); then
-    alias cat='bat --paging=never'
     alias catp='bat --style=plain --paging=never'
 fi
 
 # ripgrep & fd
-(( $+commands[rg] ))   && alias grep='rg'
-(( $+commands[fd] ))   && alias find='fd'
 (( $+commands[btop] )) && alias top='btop'
 
 # zoxide navigation
@@ -50,3 +47,12 @@ alias gca='git commit --amend --no-edit'
 alias ..='cd ..'
 alias ...='cd ../..'
 alias reload='exec zsh -l'
+# Suffix and global aliases are Zsh-only, for interactive convenience.
+if [[ -n ${ZSH_VERSION:-} ]]; then
+    (( $+commands[jq] )) && alias -s json='jq .'
+    if (( $+commands[bat] )); then
+        alias -s md=bat yaml=bat yml=bat toml=bat
+    fi
+    alias -g NE='2>/dev/null' NO='>/dev/null 2>&1'
+    (( $+commands[jq] )) && alias -g J='| jq'
+fi

@@ -19,6 +19,17 @@ if [ -z "$EXPECTED_NAME" ] || [ -z "$EXPECTED_EMAIL" ]; then
   exit 1
 fi
 
+# A set-but-empty override needs an actionable diagnostic, even when git var accepts it.
+for identity_var in GIT_AUTHOR_NAME GIT_AUTHOR_EMAIL GIT_COMMITTER_NAME GIT_COMMITTER_EMAIL; do
+  eval 'identity_set=${'"$identity_var"'+set}'
+  eval 'identity_value=${'"$identity_var"'-}'
+  if [ "$identity_set" = set ] && [ -z "$identity_value" ]; then
+    echo "[error] $identity_var is set but empty."
+    echo "   unset it first: unset $identity_var"
+    exit 1
+  fi
+done
+
 # Let Git resolve and validate both identities, including environment overrides.
 if ! AUTHOR_IDENT=$(git var GIT_AUTHOR_IDENT 2>/dev/null); then
   echo "[error] git cannot resolve a valid author identity."
