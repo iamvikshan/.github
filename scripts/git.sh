@@ -625,7 +625,7 @@ if [ -n "$REPO_ROOT" ]; then
         {
             line = $0
             exits = sub(/[[:space:]]+\|\| exit \$\?[[:space:]]*$/, "", line)
-            if (line ~ /^[[:space:]]*sh[[:space:]]+([^[:space:]]*identity-guard\.sh|".*identity-guard\.sh")[[:space:]]*$/ && (errexit || exits)) protected = 1
+            if (line ~ /^[[:space:]]*sh[[:space:]]+([^[:space:]]*sentry\.sh|".*sentry\.sh")[[:space:]]*$/ && (errexit || exits)) protected = 1
         }
         END { exit !protected }
     ' "$HOOK"; then

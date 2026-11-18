@@ -29,6 +29,7 @@ ZSH_PLUGIN_DIR="$HOME/.local/share/zsh/plugins"
 ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=#634F52'
 
 # fzf + fd + bat integration with blood-obsidian palette
+# Keep this string in sync with FZF_CHECK_OPTS in packages.sh.
 export FZF_DEFAULT_OPTS=" \
     --height=50% --layout=reverse --border=rounded --margin=1 --padding=1 \
     --color=bg+:#291F21,bg:#141011,spinner:#D92638,hl:#FF4D5E \

@@ -8,6 +8,21 @@ credentials and SSH commit signing.
 > the account `iamvikshan` and GitLab defaults to `vikshan`. To use them for
 > yourself, fork the repository and change those account names.
 
+### What the hawktuahly scripts do
+
+Bootstrap supports apt (Debian/Ubuntu), apk (Alpine), and Homebrew (macOS).
+Required tools are bat, ripgrep, fd, fzf, btop, zoxide, delta, eza, and
+Starship, plus three Zsh plugins installed by bootstrap. Setup installs missing
+tools.
+
+Bun is optional; its aliases are defined only when it is available in the
+current shell. Clipboard packages are optional, with OSC 52 as the Linux
+fallback.
+
+Setup validates the candidate before replacing ~/.zshrc, backs up an existing
+configuration, and compiles the deployed file to ~/.zshrc.zwc. Shell startup
+refreshes bytecode for configuration and plugin files when they change.
+
 ## Quick start
 
 Run the full setup in an interactive terminal (stdin stays attached for
@@ -174,34 +189,3 @@ cache when available.
 
 `cat`, `find`, and `grep` keep their usual meanings. Use `bat`, `fd`, and `rg`
 explicitly.
-
-<!-- coderabbit-ai-generated:v1 -->
-
-<!-- coderabbit-ai-generated-section:v1:43be87f0f30552ba387727d6c950983e8ec6839abb8178c7d887a0a52e044428 -->
-
-### Configuration deployment
-
-Bootstrap supports apt (Debian/Ubuntu), apk (Alpine), and Homebrew (macOS).
-Required tools are bat, ripgrep, fd, fzf, btop, zoxide, delta, eza, and
-Starship, plus the three Zsh plugins installed by bootstrap. Setup fails if a
-required tool is missing. Older distributions may need newer fzf (including
-padding support) and fd (including --strip-cwd-prefix) packages before setup can
-finish.
-
-Bun is optional; its aliases are defined only when it is available in the
-current shell. Clipboard packages are optional, with OSC 52 as the Linux
-fallback.
-
-Edit universal.zshrc and aliases.sh here, then rerun bootstrap to deploy
-changes. platforms.sh selects the fzf integration and inserts the host clipboard
-function and an optional bat man pager into the deployed ~/.zshrc. It is called
-by bootstrap with a temporary configuration path. Clipboard display checks
-remain dynamic so the same machine can serve desktop and SSH sessions.
-
-Setup validates the candidate before replacing ~/.zshrc, backs up an existing
-configuration, and compiles the deployed file to ~/.zshrc.zwc. Shell startup
-refreshes bytecode for configuration and plugin files when they change. The
-shell no longer sets EDITOR or GIT_EDITOR, displays the Codespaces first-run
-notice, or creates its notice marker. Set your editor in your own environment.
-
-<!-- /coderabbit-ai-generated:v1 -->

@@ -49,7 +49,7 @@ esac
 # col is not available on every distribution. Preserve a user's pager choice.
 if command -v col >/dev/null 2>&1; then
     cat >> "$platform" <<'ZSH'
-if [[ ! -v MANPAGER ]]; then
+if (( ! ${+MANPAGER} )); then
     export MANPAGER="sh -c 'col -bx | bat --language=man --style=plain'"
 fi
 ZSH
@@ -59,14 +59,22 @@ awk -v fragment="$platform" -v fzf="$fzf_init" '
     $0 == "# bootstrap:fzf" {
         while ((getline line < fzf) > 0) print line
         close(fzf)
+        replaced_fzf++
         next
     }
     $0 == "# bootstrap:platform" {
         while ((getline line < fragment) > 0) print line
         close(fragment)
+        replaced_platform++
         next
     }
     { print }
+    END {
+        if (replaced_fzf != 1 || replaced_platform != 1) {
+            printf "[error] platforms.sh: expected each marker to appear exactly once; got bootstrap:fzf=%d bootstrap:platform=%d\n", replaced_fzf, replaced_platform > "/dev/stderr"
+            exit 1
+        }
+    }
 ' "$candidate" > "$rendered"
 zsh -n "$rendered"
 zsh -n "$fzf_init"
