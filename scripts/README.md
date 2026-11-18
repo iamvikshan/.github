@@ -8,6 +8,21 @@ credentials and SSH commit signing.
 > the account `iamvikshan` and GitLab defaults to `vikshan`. To use them for
 > yourself, fork the repository and change those account names.
 
+### What the hawktuahly scripts do
+
+Bootstrap supports apt (Debian/Ubuntu), apk (Alpine), and Homebrew (macOS).
+Required tools are bat, ripgrep, fd, fzf, btop, zoxide, delta, eza, and
+Starship, plus three Zsh plugins installed by bootstrap. Setup installs missing
+tools.
+
+Bun is optional; its aliases are defined only when it is available in the
+current shell. Clipboard packages are optional, with OSC 52 as the Linux
+fallback.
+
+Setup validates the candidate before replacing ~/.zshrc, backs up an existing
+configuration, and compiles the deployed file to ~/.zshrc.zwc. Shell startup
+refreshes bytecode for configuration and plugin files when they change.
+
 ## Quick start
 
 Run the full setup in an interactive terminal (stdin stays attached for
