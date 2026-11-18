@@ -85,13 +85,10 @@ elif command -v apk >/dev/null 2>&1; then
     $SUDO apk add --no-cache zsh git curl jq ca-certificates openssh-client
 elif command -v brew >/dev/null 2>&1; then
     brew install zsh git curl jq
-elif command -v dnf >/dev/null 2>&1; then
-    $SUDO dnf install -y -q zsh git curl jq ca-certificates
-elif command -v pacman >/dev/null 2>&1; then
-    $SUDO pacman -Sy --noconfirm --needed zsh git curl jq ca-certificates
 else
     log_fail "unsupported package manager."
 fi
+export PATH="$HOME/.local/bin:$PATH"
 log_ok "base prerequisites ready."
 
 # 5. install modern rust/c++ cli toolchain
@@ -148,6 +145,9 @@ clone_or_pull() {
 clone_or_pull "https://github.com/zsh-users/zsh-autosuggestions.git" "zsh-autosuggestions"
 clone_or_pull "https://github.com/zsh-users/zsh-syntax-highlighting.git" "zsh-syntax-highlighting"
 clone_or_pull "https://github.com/Aloxaf/fzf-tab.git" "fzf-tab"
+for plugin in fzf-tab/fzf-tab.plugin.zsh zsh-autosuggestions/zsh-autosuggestions.zsh zsh-syntax-highlighting/zsh-syntax-highlighting.zsh; do
+    [ -s "$PLUGIN_DIR/$plugin" ] || log_fail "missing plugin: $plugin"
+done
 log_ok "zsh plugins synced."
 
 # 7. deploy universal.zshrc, aliases.sh, and starship.toml
@@ -171,13 +171,24 @@ install_config() {
     fi
 }
 
-if [ -f "$HOME/.zshrc" ] || [ -L "$HOME/.zshrc" ]; then
-    mv "$HOME/.zshrc" "$HOME/.zshrc.backup-$(date +%s)"
-fi
-
-install_config "universal.zshrc" "$HOME/.zshrc"
+zsh_candidate="$(mktemp "$HOME/.zshrc.tmp.XXXXXX")"
+TMP_FILES="$TMP_FILES $zsh_candidate"
+install_config "universal.zshrc" "$zsh_candidate"
 install_config "aliases.sh" "$ZSH_CONFIG_DIR/aliases.sh"
 install_config "starship.toml" "$HOME/.config/starship.toml"
+if [ -f "$SCRIPT_DIR/platforms.sh" ]; then
+    sh "$SCRIPT_DIR/platforms.sh" "$zsh_candidate"
+else
+    run_remote_script "platforms.sh" "$zsh_candidate"
+fi
+zsh -n "$zsh_candidate"
+if [ -f "$HOME/.zshrc" ] || [ -L "$HOME/.zshrc" ]; then
+    cp -pP "$HOME/.zshrc" "$HOME/.zshrc.backup-$(date +%s)"
+fi
+# Invalidate caches even when two deployments share the same timestamp.
+rm -f "$HOME/.zshrc.zwc" "$ZSH_CONFIG_DIR/aliases.sh.zwc"
+mv "$zsh_candidate" "$HOME/.zshrc"
+zsh -fc 'zcompile "$HOME/.zshrc"'
 log_ok "configurations deployed."
 
 # 8. configure interactive and login shell handoff

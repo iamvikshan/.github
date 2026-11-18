@@ -3,28 +3,22 @@
 # ==============================================================================
 
 # eza (replaces ls)
-if (( $+commands[eza] )); then
-    alias ls='eza --icons --group-directories-first'
-    alias ll='eza --icons --group-directories-first -lh'
-    alias la='eza --icons --group-directories-first -lah'
-    alias llg='eza --icons --group-directories-first --git -lah'
-    alias lt='eza --icons --tree --level=2'
-    alias lta='eza --icons --tree --level=3 -a'
-fi
+alias ls='eza --icons --group-directories-first'
+alias ll='eza --icons --group-directories-first -lh'
+alias la='eza --icons --group-directories-first -lah'
+alias llg='eza --icons --group-directories-first --git -lah'
+alias lt='eza --icons --tree --level=2'
+alias lta='eza --icons --tree --level=3 -a'
 
 # explicit pretty-printing; preserve standard cat/grep/find semantics
-if (( $+commands[bat] )); then
-    alias catp='bat --style=plain --paging=never'
-fi
+alias catp='bat --style=plain --paging=never'
 
 # ripgrep & fd
-(( $+commands[btop] )) && alias top='btop'
+alias top='btop'
 
 # zoxide navigation
-if (( $+commands[zoxide] )); then
-    alias cd='z'
-    alias cdi='zi'
-fi
+alias cd='z'
+alias cdi='zi'
 
 # bun shortcuts
 if (( $+commands[bun] )); then
@@ -48,9 +42,5 @@ alias ..='cd ..'
 alias ...='cd ../..'
 alias reload='exec zsh -l'
 # Suffix and global aliases are Zsh-only, for interactive convenience.
-if [[ -n ${ZSH_VERSION:-} ]]; then
-    (( $+commands[jq] )) && alias -s json='jq .'
-    if (( $+commands[bat] )); then
-        alias -s md=bat yaml=bat yml=bat toml=bat
-    fi
-fi
+alias -s json='jq .'
+alias -s md=bat yaml=bat yml=bat toml=bat

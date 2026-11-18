@@ -1,4 +1,3 @@
-
 #!/bin/sh
 # ==============================================================================
 # installs modern rust/c++ cli suite across debian, alpine, and macos
@@ -7,6 +6,7 @@
 set -e
 
 mkdir -p "$HOME/.local/bin"
+export PATH="$HOME/.local/bin:$PATH"
 
 if [ "$(id -u)" -eq 0 ]; then
     SUDO=""
@@ -58,10 +58,13 @@ if command -v apt-get >/dev/null 2>&1; then
         ripgrep \
         fd-find \
         fzf \
-        btop
+        btop \
+        zoxide \
+        git-delta \
+        eza
 
-    # optional packages
-    for opt_pkg in zoxide git-delta eza wl-clipboard xclip; do
+    # Desktop clipboard providers depend on the host; OSC 52 remains the fallback.
+    for opt_pkg in wl-clipboard xclip; do
         if apt-cache show "$opt_pkg" >/dev/null 2>&1; then
             $SUDO apt-get install -y -qq "$opt_pkg" || printf "[warn] failed to install optional package: %s\n" "$opt_pkg" >&2
         else
@@ -106,3 +109,21 @@ else
     printf "[error] unsupported package manager for modern CLI tools (supported: apt-get, apk, brew).\n" >&2
     exit 1
 fi
+
+# The shell assumes these tools exist. Refuse a partial installation.
+for tool in bat rg fd fzf btop zoxide delta eza starship; do
+    command -v "$tool" >/dev/null 2>&1 || {
+        printf '[error] required tool missing: %s\n' "$tool" >&2
+        exit 1
+    }
+done
+
+# Presence alone is insufficient for the options used by the shell configuration.
+printf 'check\n' | FZF_DEFAULT_OPTS= FZF_DEFAULT_OPTS_FILE=/dev/null fzf --filter=check --height=50% --layout=reverse --border=rounded --margin=1 --padding=1 >/dev/null || {
+    printf '[error] fzf is too old for this configuration; install a newer version\n' >&2
+    exit 1
+}
+fd --help | grep -q -- '--strip-cwd-prefix' || {
+    printf '[error] fd must support --strip-cwd-prefix; install a newer version\n' >&2
+    exit 1
+}
