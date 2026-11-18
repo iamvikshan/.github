@@ -8,7 +8,7 @@ credentials and SSH commit signing.
 > the account `iamvikshan` and GitLab defaults to `vikshan`. To use them for
 > yourself, fork the repository and change those account names.
 
-### What the hawktuahly scripts do
+### What the scripts hawktuahly do
 
 Bootstrap supports apt (Debian/Ubuntu), apk (Alpine), and Homebrew (macOS).
 Required tools are bat, ripgrep, fd, fzf, btop, zoxide, delta, eza, and

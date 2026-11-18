@@ -26,7 +26,6 @@ if (( $+commands[bun] )); then
     alias bi='bun install'
     alias br='bun run'
     alias bx='bunx'
-    alias bs='chmod +x scripts/*.sh && scripts/bootstrap.sh'
 fi
 
 # git & delta shortcuts
@@ -36,6 +35,12 @@ alias gds='git diff --staged'
 alias gl='git log --oneline --graph --decorate -n 20'
 alias gp='git pull --rebase'
 alias gca='git commit --amend --no-edit'
+alias gcas='git commit --amend --no-edit --no-verify'
+alias ga='git add .'
+alias gacas='git add . && git commit --amend --no-edit --no-verify'
+alias gaca='git add . && git commit --amend --no-edit'
+alias gacapf='git add . && git commit --amend --no-edit && git push -f'
+alias gacaspf='git add . && git commit --amend --no-edit --no-verify && git push -f'
 
 # safety & navigation
 alias ..='cd ..'
@@ -44,3 +49,9 @@ alias reload='exec zsh -l'
 # Suffix and global aliases are Zsh-only, for interactive convenience.
 alias -s json='jq .'
 alias -s md=bat yaml=bat yml=bat toml=bat
+
+# debian/ubuntu
+alias apgd='sudo apt update && sudo apt upgrade -y && sudo apt autoremove -y && sudo apt clean'
+
+# extras
+alias bts='sh -c "$(curl -fsSL https://raw.githubusercontent.com/iamvikshan/.github/main/scripts/bootstrap.sh)"'
